@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.database import create_db_and_tables
-from app.routers import students, users
+from app.routers import projects, students, users
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -21,6 +21,8 @@ app = FastAPI(
 
 app.include_router(users.router)
 app.include_router(students.router)
+app.include_router(projects.router)
+app.include_router(projects.owner_router)
 
 
 @app.get("/", tags=["Health"])

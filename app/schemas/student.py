@@ -3,33 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.constants import validate_skills
 from app.models.enums import WorkPreference
-
-ALLOWED_SKILLS = {
-    "GRAPHIC_DESIGN",
-    "CANVA",
-    "SOCIAL_MEDIA_DESIGN",
-    "BRANDING",
-    "ILLUSTRATION",
-    "CONTENT_WRITING",
-    "DIGITAL_MARKETING",
-    "DATA_ANALYSIS",
-    "VIDEO_EDITING",
-    "PROGRAMMING",
-    "TRANSLATION",
-}
-
-
-def validate_skills(skills: list[str]) -> list[str]:
-    if not skills:
-        raise ValueError("At least one skill is required.")
-
-    unknown_skills = set(skills) - ALLOWED_SKILLS
-    if unknown_skills:
-        names = ", ".join(sorted(unknown_skills))
-        raise ValueError(f"Unsupported skill(s): {names}")
-
-    return list(dict.fromkeys(skills))
 
 
 class StudentProfileCreate(BaseModel):
