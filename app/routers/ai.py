@@ -1,4 +1,6 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from pathlib import Path
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.config import get_settings
 from app.schemas.ai import (
@@ -17,6 +19,14 @@ from app.services.voice_service import transcribe_burmese_audio
 
 router = APIRouter(tags=["AI and Voice"])
 
+AUDIO_MIME_TYPES = {
+    ".m4a": "audio/mp4",
+    ".mp3": "audio/mpeg",
+    ".wav": "audio/wav",
+    ".webm": "audio/webm",
+    ".ogg": "audio/ogg",
+}
+
 
 def provider_error_to_http(error: Exception) -> HTTPException:
     if isinstance(error, AIServiceNotConfiguredError):
@@ -24,11 +34,25 @@ def provider_error_to_http(error: Exception) -> HTTPException:
     return HTTPException(status_code=502, detail=str(error))
 
 
+def get_audio_mime_type(file: UploadFile) -> str:
+    """Use the uploaded MIME type, or infer a common audio type from its filename."""
+    if file.content_type and file.content_type.startswith("audio/"):
+        return file.content_type
+
+    suffix = Path(file.filename or "").suffix.lower()
+    mime_type = AUDIO_MIME_TYPES.get(suffix)
+    if mime_type is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Please upload an M4A, MP3, WAV, WEBM, OGG, or other audio file.",
+        )
+    return mime_type
+
+
 @router.post("/voice/transcribe", response_model=TranscriptResponse)
 async def transcribe_voice(file: UploadFile = File(...)) -> TranscriptResponse:
     """Convert a short Burmese recording to editable text. It does not save data."""
-    if file.content_type and not file.content_type.startswith("audio/"):
-        raise HTTPException(status_code=422, detail="Please upload an audio file.")
+    mime_type = get_audio_mime_type(file)
 
     audio_bytes = await file.read()
     if not audio_bytes:
@@ -37,7 +61,7 @@ async def transcribe_voice(file: UploadFile = File(...)) -> TranscriptResponse:
         raise HTTPException(status_code=413, detail="Audio file is too large.")
 
     try:
-        transcript = transcribe_burmese_audio(audio_bytes)
+        transcript = transcribe_burmese_audio(audio_bytes, mime_type)
     except (AIServiceNotConfiguredError, AIServiceError) as error:
         raise provider_error_to_http(error) from error
     return TranscriptResponse(transcript=transcript)

@@ -60,6 +60,23 @@ def test_voice_endpoint_rejects_a_non_audio_upload() -> None:
     assert response.status_code == 422
 
 
+def test_voice_endpoint_returns_a_burmese_transcript(monkeypatch) -> None:
+    def fake_transcribe(audio_bytes: bytes, mime_type: str) -> str:
+        assert audio_bytes == b"audio bytes"
+        assert mime_type == "audio/mp4"
+        return "Graphic Design နဲ့ Canva တတ်ပါတယ်။"
+
+    monkeypatch.setattr(ai, "transcribe_burmese_audio", fake_transcribe)
+    with TestClient(app) as client:
+        response = client.post(
+            "/voice/transcribe",
+            files={"file": ("profile.m4a", b"audio bytes", "audio/mp4")},
+        )
+
+    assert response.status_code == 200
+    assert response.json()["transcript"] == "Graphic Design နဲ့ Canva တတ်ပါတယ်။"
+
+
 def test_ai_endpoints_show_clear_setup_error_when_not_configured(monkeypatch) -> None:
     def not_configured(_: str) -> StudentProfileDraft:
         raise ai.AIServiceNotConfiguredError("GEMINI_API_KEY is not configured.")

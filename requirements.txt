@@ -3,6 +3,5 @@ sqlmodel
 uvicorn[standard]
 pytest
 httpx
-google-cloud-speech
 google-genai
 python-multipart

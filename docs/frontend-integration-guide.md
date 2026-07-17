@@ -58,7 +58,7 @@ These endpoints are ready now:
 | Student invitations | `GET /students/{student_id}/invitations` | Ready |
 | Accept invitation | `POST /invitations/{invitation_id}/accept` | Ready |
 | Decline invitation | `POST /invitations/{invitation_id}/decline` | Ready |
-| Transcribe voice | `POST /voice/transcribe` | Ready after Google Cloud setup |
+| Transcribe voice | `POST /voice/transcribe` | Ready after Gemini setup |
 | Parse student text | `POST /profiles/parse` | Ready after Gemini setup |
 | Parse project text | `POST /projects/parse-brief` | Ready after Gemini setup |
 

@@ -27,29 +27,24 @@ cp .env.example .env
 Set these values in `.env`:
 
 ```text
-GOOGLE_CLOUD_PROJECT=your-project-id
 GEMINI_API_KEY=your-gemini-key
+GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_AUDIO_MODEL=gemini-2.5-flash
 ```
 
-Do not commit `.env` or a Google service-account JSON file.
-
-For Google Cloud Speech-to-Text, authenticate locally with Application Default Credentials or set this shell variable before starting FastAPI:
-
-```bash
-export GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/service-account.json"
-```
+Do not commit `.env`. Google Cloud Speech-to-Text, a Google Cloud project, and a service-account JSON file are no longer required.
 
 ## 3. Speech configuration
 
-The default configuration is:
+The Speech-to-Text configuration is:
 
 ```text
-language: my-MM
-region: asia-southeast1
-model: chirp_2
+provider: Gemini API
+model: gemini-2.5-flash
+language instruction: Burmese (Myanmar)
 ```
 
-Use short recordings for the MVP (about 10–15 seconds). The API accepts audio uploads up to 10 MB by default.
+Use short, completed recordings for the MVP (about 10–15 seconds). The API accepts audio uploads up to 10 MB by default. It is not a live, word-by-word transcription service.
 
 ## 4. Test in Postman
 
@@ -91,4 +86,4 @@ POST http://127.0.0.1:8000/projects/parse-brief
 }
 ```
 
-If credentials are not configured, the endpoints return `503 Service Unavailable`. This is expected; Flutter should offer the normal manual form instead.
+If `GEMINI_API_KEY` is not configured, the endpoints return `503 Service Unavailable`. This is expected; Flutter should offer the normal manual form instead.

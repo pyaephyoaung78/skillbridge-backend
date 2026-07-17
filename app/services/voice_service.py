@@ -2,48 +2,33 @@ from app.config import get_settings
 from app.services.ai_service import AIServiceError, AIServiceNotConfiguredError
 
 
-def transcribe_burmese_audio(audio_bytes: bytes) -> str:
-    """Transcribe a short Burmese audio file through Google Speech-to-Text V2."""
+def transcribe_burmese_audio(audio_bytes: bytes, mime_type: str) -> str:
+    """Transcribe a completed short Burmese recording with Gemini audio input."""
     settings = get_settings()
-    if not settings.google_cloud_project:
-        raise AIServiceNotConfiguredError("GOOGLE_CLOUD_PROJECT is not configured.")
+    if not settings.gemini_api_key:
+        raise AIServiceNotConfiguredError("GEMINI_API_KEY is not configured.")
 
     try:
-        from google.api_core.client_options import ClientOptions
-        from google.cloud.speech_v2 import SpeechClient
-        from google.cloud.speech_v2.types import cloud_speech
+        from google import genai
+        from google.genai import types
 
-        client = SpeechClient(
-            client_options=ClientOptions(
-                api_endpoint=f"{settings.speech_region}-speech.googleapis.com"
-            )
-        )
-        config = cloud_speech.RecognitionConfig(
-            auto_decoding_config=cloud_speech.AutoDetectDecodingConfig(),
-            language_codes=["my-MM"],
-            model=settings.speech_model,
-            features=cloud_speech.RecognitionFeatures(
-                enable_automatic_punctuation=True,
-            ),
-        )
-        response = client.recognize(
-            request=cloud_speech.RecognizeRequest(
-                recognizer=(
-                    f"projects/{settings.google_cloud_project}/"
-                    f"locations/{settings.speech_region}/recognizers/_"
+        client = genai.Client(api_key=settings.gemini_api_key)
+        response = client.models.generate_content(
+            model=settings.gemini_audio_model,
+            contents=[
+                (
+                    "Transcribe only the spoken words in this audio. "
+                    "The primary language is Burmese (Myanmar). "
+                    "Return the transcript in Burmese script where appropriate. "
+                    "Do not translate, summarize, explain, add timestamps, or add labels."
                 ),
-                config=config,
-                content=audio_bytes,
-            )
+                types.Part.from_bytes(data=audio_bytes, mime_type=mime_type),
+            ],
         )
     except Exception as error:
-        raise AIServiceError("Google Speech-to-Text could not transcribe this audio.") from error
+        raise AIServiceError("Gemini could not transcribe this audio.") from error
 
-    transcript = " ".join(
-        result.alternatives[0].transcript
-        for result in response.results
-        if result.alternatives
-    ).strip()
+    transcript = (response.text or "").strip()
     if not transcript:
         raise AIServiceError("No speech was detected in the audio.")
     return transcript
