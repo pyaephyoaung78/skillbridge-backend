@@ -53,12 +53,12 @@ These endpoints are ready now:
 | Create project | `POST /projects` | Ready |
 | Read project | `GET /projects/{project_id}` | Ready |
 | Owner project list | `GET /owners/{owner_id}/projects` | Ready |
+| Get top 3 matches | `GET /projects/{project_id}/matches` | Ready |
 
 These endpoints will be added next. You can build their screens and use mock data until the backend delivers them:
 
 | Feature | Planned endpoint |
 |---|---|
-| Get top 3 matches | `GET /projects/{project_id}/matches` |
 | Send invitation | `POST /invitations` |
 | Student invitations | `GET /students/{student_id}/invitations` |
 | Accept invitation | `POST /invitations/{invitation_id}/accept` |
