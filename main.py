@@ -1,16 +1,29 @@
-# This is a sample Python script.
+from contextlib import asynccontextmanager
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+from fastapi import FastAPI
+
+from app.database import create_db_and_tables
+from app.routers import students, users
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Create database tables when the local development server starts."""
+    create_db_and_tables()
+    yield
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+app = FastAPI(
+    title="SkillBridge API",
+    description="Backend API for the SkillBridge campus talent match MVP.",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.include_router(users.router)
+app.include_router(students.router)
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+@app.get("/", tags=["Health"])
+def health_check() -> dict[str, str]:
+    """Confirm that the API is running."""
+    return {"message": "SkillBridge API is running"}
