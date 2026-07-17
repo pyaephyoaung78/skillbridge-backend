@@ -24,6 +24,15 @@ def matched_skills(student: StudentProfile, project: Project) -> list[str]:
     return [skill for skill in project.required_skills if skill in student_skills]
 
 
+def student_is_eligible_for_project(student: StudentProfile, project: Project) -> bool:
+    """Apply the matching hard filters before an owner can send an invitation."""
+    return (
+        student.is_available
+        and bool(matched_skills(student, project))
+        and work_preference_matches(student, project)
+    )
+
+
 def calculate_score(student: StudentProfile, project: Project) -> tuple[int, list[str]]:
     """Calculate the documented, transparent 100-point match score."""
     matching_skills = matched_skills(student, project)
@@ -68,12 +77,10 @@ def find_top_matches(
     candidates: list[MatchCandidateRead] = []
 
     for student, user in students_with_users:
-        matching_skills = matched_skills(student, project)
-        if not student.is_available or not matching_skills:
-            continue
-        if not work_preference_matches(student, project):
+        if not student_is_eligible_for_project(student, project):
             continue
 
+        matching_skills = matched_skills(student, project)
         score, matching_skills = calculate_score(student, project)
         candidates.append(
             MatchCandidateRead(
