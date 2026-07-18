@@ -37,6 +37,11 @@ Rules:
 - `technical_skills` must preserve the exact technology, language, framework, tool, or software name spoken by the student in English.
 - For example, Python, C++, C#, and Java must be returned in `technical_skills`; map them to `PROGRAMMING` in `skills`.
 - Do not translate, transliterate, group, or replace exact technical terms in `technical_skills`.
+- Return `availability` as one exact English code: WEEKDAY_MORNINGS, WEEKDAY_EVENINGS, WEEKEND_MORNINGS, WEEKEND_EVENINGS, or FLEXIBLE.
+- Map Burmese availability phrases to those codes. For example, "စနေ၊ တနင်္ဂနွေ ညနေပိုင်း" means WEEKEND_EVENINGS.
+- Return `work_preference` only as REMOTE, ON_SITE, or BOTH.
+- Use an English university name when it is clear, for example "ကွန်ပျူတာတက္ကသိုလ် (သထုံ)" becomes "Computer University (Thaton)".
+- Keep a person's name as spoken; do not translate or change it.
 - work_preference must be REMOTE, ON_SITE, or BOTH.
 - A portfolio URL is entered manually elsewhere; do not extract one.
 """.strip()

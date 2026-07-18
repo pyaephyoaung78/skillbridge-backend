@@ -79,6 +79,16 @@ The response includes a saved `transcription` record and an optional `profile_dr
 
 `skills` contains controlled matching categories, such as `PROGRAMMING`. `technical_skills` contains exact technologies, such as `Python`, `C++`, `C#`, and `Java`. Send both fields when the student confirms their normal profile form.
 
+For matching, send availability and work preference as exact English API values. The voice extractor converts Burmese phrases to these availability codes:
+
+```text
+WEEKDAY_MORNINGS
+WEEKDAY_EVENINGS
+WEEKEND_MORNINGS
+WEEKEND_EVENINGS
+FLEXIBLE
+```
+
 Do not automatically create or overwrite a `StudentProfile` from a transcript. The student must review/edit the draft, then submit the normal `POST /students` or `PATCH /students/{student_id}` request.
 
 ## 4. API base URL
