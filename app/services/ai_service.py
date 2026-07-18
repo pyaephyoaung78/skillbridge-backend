@@ -78,6 +78,7 @@ def _match_recommendation_prompt(
             f"- student_id: {candidate.student_id}; name: {candidate.name}; "
             f"rank: {candidate.priority_rank}; score: {candidate.score}%; "
             f"matched_skills: {', '.join(candidate.matched_skills)}; "
+            f"matched_technical_skills: {', '.join(candidate.matched_technical_skills)}; "
             f"availability: {candidate.availability}; "
             f"project_required_availability: {project.required_availability}; "
             f"work_preference: {candidate.work_preference}; "
@@ -91,6 +92,7 @@ Write one short, friendly Burmese recommendation for each SkillBridge priority c
 Project: {project.title}
 Project work type: {project.work_type}
 Required skills: {', '.join(project.required_skills)}
+Required technical skills: {', '.join(project.required_technical_skills or [])}
 
 Candidates:
 {candidate_lines}

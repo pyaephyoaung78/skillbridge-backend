@@ -9,12 +9,14 @@ class MatchCandidateRead(BaseModel):
     student_id: UUID
     name: str
     skills: list[str]
+    technical_skills: list[str]
     availability: str
     work_preference: WorkPreference
     portfolio_url: str | None
     rating: float
     completed_projects: int
     matched_skills: list[str]
+    matched_technical_skills: list[str]
     score: int
     explanation: str
     priority_rank: int | None = None

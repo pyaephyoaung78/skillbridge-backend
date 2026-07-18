@@ -410,6 +410,7 @@ title
 description
 role
 required_skills
+required_technical_skills (optional)
 required_availability
 deadline
 work_type
@@ -424,13 +425,31 @@ Example request:
   "title": "Tech Event Social Media Design",
   "description": "Create social-media posters for a university tech event.",
   "role": "GRAPHIC_DESIGNER",
-  "required_skills": ["GRAPHIC_DESIGN", "CANVA"],
+  "required_skills": ["GRAPHIC_DESIGN"],
+  "required_technical_skills": ["Canva", "Figma"],
   "required_availability": "WEEKDAY_EVENINGS",
   "deadline": "2026-07-24",
   "work_type": "REMOTE",
   "budget_mmk": 60000
 }
 ```
+
+Use the two skill fields correctly:
+
+| Form field | API field | Example | Matching purpose |
+|---|---|---|---|
+| Skill category | `required_skills` | `["GRAPHIC_DESIGN"]` | Matches the student's controlled `skills` list. |
+| Tool / technology | `required_technical_skills` | `["Canva", "Figma"]` | Matches the student's exact `technical_skills` list, case-insensitively. |
+
+Do **not** send `city` or `location`. Location is intentionally not part of the Project model or matching logic. Also do not send `work_mode`, nested `availability_time`, or nested `fee` fields. Use these flat backend fields instead:
+
+```text
+work_type              -> REMOTE or ON_SITE
+required_availability  -> one of the availability codes
+budget_mmk             -> whole-number MMK amount
+```
+
+For this MVP, an owner can require multiple technical terms, but a student is eligible when they match at least one of them; matching more terms improves the score. The owner should use only truly important tools here.
 
 Save the returned project ID as:
 
@@ -466,6 +485,8 @@ Show a **Top 3 Recommended Students** section first, then show all remaining can
 ```text
 student name
 skills
+technical skills
+matched technical skills
 availability
 work preference
 portfolio link, if present
@@ -638,6 +659,7 @@ ProjectDto
 - description
 - role
 - requiredSkills
+- requiredTechnicalSkills
 - requiredAvailability
 - deadline
 - workType
@@ -649,12 +671,14 @@ MatchCandidateDto
 - studentId
 - name
 - skills
+- technicalSkills
 - availability
 - workPreference
 - portfolioUrl
 - rating
 - completedProjects
 - matchedSkills
+- matchedTechnicalSkills
 - score
 - explanation
 

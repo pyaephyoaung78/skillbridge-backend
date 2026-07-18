@@ -41,6 +41,7 @@ def create_student(
     skills: list[str],
     availability: str,
     work_preference: str = "REMOTE",
+    technical_skills: list[str] | None = None,
     portfolio_url: str | None = None,
     is_available: bool = True,
 ) -> None:
@@ -52,6 +53,7 @@ def create_student(
             "name": name,
             "university": "University of Yangon",
             "skills": skills,
+            "technical_skills": technical_skills or [],
             "availability": availability,
             "work_preference": work_preference,
             "portfolio_url": portfolio_url,
@@ -61,7 +63,11 @@ def create_student(
     assert response.status_code == 201
 
 
-def create_project(client: TestClient) -> str:
+def create_project(
+    client: TestClient,
+    *,
+    required_technical_skills: list[str] | None = None,
+) -> str:
     owner_id = create_user(client, "Tech Event Club", "PROJECT_OWNER")
     response = client.post(
         "/projects",
@@ -71,6 +77,7 @@ def create_project(client: TestClient) -> str:
             "description": "Create social-media posters for a university tech event.",
             "role": "GRAPHIC_DESIGNER",
             "required_skills": ["GRAPHIC_DESIGN", "CANVA"],
+            "required_technical_skills": required_technical_skills or [],
             "required_availability": "WEEKDAY_EVENINGS",
             "deadline": (date.today() + timedelta(days=7)).isoformat(),
             "work_type": "REMOTE",
@@ -136,7 +143,34 @@ def test_matches_are_filtered_scored_and_prioritize_the_top_three(client: TestCl
     assert [candidate["score"] for candidate in candidates] == [100, 75, 68, 43]
     assert [candidate["priority_rank"] for candidate in candidates] == [1, 2, 3, None]
     assert candidates[0]["matched_skills"] == ["GRAPHIC_DESIGN", "CANVA"]
+    assert candidates[0]["matched_technical_skills"] == []
     assert candidates[0]["explanation"]
+
+
+def test_technical_skills_are_used_for_project_matching(client: TestClient) -> None:
+    create_student(
+        client,
+        name="Figma Designer",
+        skills=["GRAPHIC_DESIGN"],
+        technical_skills=["figma", "Adobe Photoshop"],
+        availability="WEEKDAY_EVENINGS",
+    )
+    create_student(
+        client,
+        name="Canva Designer",
+        skills=["GRAPHIC_DESIGN"],
+        technical_skills=["Canva"],
+        availability="WEEKDAY_EVENINGS",
+    )
+
+    project_id = create_project(client, required_technical_skills=["Figma"])
+    response = client.get(f"/projects/{project_id}/matches")
+
+    assert response.status_code == 200
+    candidates = response.json()["candidates"]
+    assert [candidate["name"] for candidate in candidates] == ["Figma Designer"]
+    assert candidates[0]["matched_technical_skills"] == ["Figma"]
+    assert candidates[0]["technical_skills"] == ["figma", "Adobe Photoshop"]
 
 
 def test_match_recommendations_fall_back_to_rule_based_text_when_ai_is_unavailable(

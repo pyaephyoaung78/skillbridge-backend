@@ -25,6 +25,10 @@ class Project(SQLModel, table=True):
         default_factory=list,
         sa_column=Column(JSON, nullable=False),
     )
+    required_technical_skills: list[str] | None = Field(
+        default=None,
+        sa_column=Column(JSON, nullable=True),
+    )
     required_availability: str = Field(min_length=1, max_length=50)
     deadline: date
     work_type: WorkType

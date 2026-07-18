@@ -15,6 +15,7 @@ class ProjectCreate(BaseModel):
     description: str = Field(min_length=1, max_length=2_000)
     role: str = Field(min_length=1, max_length=100)
     required_skills: list[str]
+    required_technical_skills: list[str] = Field(default_factory=list)
     required_availability: str = Field(min_length=1, max_length=50)
     deadline: date
     work_type: WorkType
@@ -24,6 +25,12 @@ class ProjectCreate(BaseModel):
     @classmethod
     def required_skills_must_be_allowed(cls, skills: list[str]) -> list[str]:
         return validate_skills(skills)
+
+    @field_validator("required_technical_skills")
+    @classmethod
+    def technical_skills_must_be_clean(cls, skills: list[str]) -> list[str]:
+        cleaned_skills = [skill.strip() for skill in skills if skill.strip()]
+        return list(dict.fromkeys(cleaned_skills))
 
     @field_validator("deadline")
     @classmethod
@@ -43,6 +50,7 @@ class ProjectRead(BaseModel):
     description: str
     role: str
     required_skills: list[str]
+    required_technical_skills: list[str]
     required_availability: str
     deadline: date
     work_type: WorkType

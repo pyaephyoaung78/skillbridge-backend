@@ -26,6 +26,7 @@ def _add_missing_sqlite_columns() -> None:
             "name": "TEXT",
             "technical_skills": "JSON",
         },
+        "projects": {"required_technical_skills": "JSON"},
     }
     inspector = inspect(engine)
     existing_tables = set(inspector.get_table_names())

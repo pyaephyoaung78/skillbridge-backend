@@ -55,6 +55,7 @@ def project_response(project: Project, session: Session) -> ProjectRead:
         description=project.description,
         role=project.role,
         required_skills=project.required_skills,
+        required_technical_skills=project.required_technical_skills or [],
         required_availability=project.required_availability,
         deadline=project.deadline,
         work_type=project.work_type,

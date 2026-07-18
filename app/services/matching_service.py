@@ -4,7 +4,9 @@ from app.models.student_profile import StudentProfile
 from app.models.user import User
 from app.schemas.match import MatchCandidateRead
 
-SKILL_POINTS = 55
+CATEGORY_SKILL_POINTS = 45
+TECHNICAL_SKILL_POINTS = 10
+SKILL_POINTS_WITHOUT_TECHNICAL_REQUIREMENTS = 55
 AVAILABILITY_POINTS = 25
 WORK_TYPE_POINTS = 15
 PORTFOLIO_POINTS = 5
@@ -24,19 +26,54 @@ def matched_skills(student: StudentProfile, project: Project) -> list[str]:
     return [skill for skill in project.required_skills if skill in student_skills]
 
 
+def matched_technical_skills(student: StudentProfile, project: Project) -> list[str]:
+    """Match technical terms case-insensitively while keeping the project's display text."""
+    student_technical_skills = {
+        skill.casefold() for skill in (student.technical_skills or [])
+    }
+    return [
+        skill
+        for skill in (project.required_technical_skills or [])
+        if skill.casefold() in student_technical_skills
+    ]
+
+
 def student_is_eligible_for_project(student: StudentProfile, project: Project) -> bool:
     """Apply the matching hard filters before an owner can send an invitation."""
     return (
         student.is_available
         and bool(matched_skills(student, project))
+        and (
+            not project.required_technical_skills
+            or bool(matched_technical_skills(student, project))
+        )
         and work_preference_matches(student, project)
     )
 
 
-def calculate_score(student: StudentProfile, project: Project) -> tuple[int, list[str]]:
+def calculate_score(
+    student: StudentProfile,
+    project: Project,
+) -> tuple[int, list[str], list[str]]:
     """Calculate the documented, transparent 100-point match score."""
     matching_skills = matched_skills(student, project)
-    skill_score = round(SKILL_POINTS * len(matching_skills) / len(project.required_skills))
+    matching_technical_skills = matched_technical_skills(student, project)
+    if project.required_technical_skills:
+        category_skill_score = round(
+            CATEGORY_SKILL_POINTS * len(matching_skills) / len(project.required_skills)
+        )
+        technical_skill_score = round(
+            TECHNICAL_SKILL_POINTS
+            * len(matching_technical_skills)
+            / len(project.required_technical_skills)
+        )
+        skill_score = category_skill_score + technical_skill_score
+    else:
+        skill_score = round(
+            SKILL_POINTS_WITHOUT_TECHNICAL_REQUIREMENTS
+            * len(matching_skills)
+            / len(project.required_skills)
+        )
     availability_score = (
         AVAILABILITY_POINTS
         if student.availability == project.required_availability
@@ -45,13 +82,18 @@ def calculate_score(student: StudentProfile, project: Project) -> tuple[int, lis
     work_type_score = WORK_TYPE_POINTS
     portfolio_score = PORTFOLIO_POINTS if student.portfolio_url else 0
 
-    return skill_score + availability_score + work_type_score + portfolio_score, matching_skills
+    return (
+        skill_score + availability_score + work_type_score + portfolio_score,
+        matching_skills,
+        matching_technical_skills,
+    )
 
 
 def recommendation_explanation(
     student: StudentProfile,
     project: Project,
     matching_skills: list[str],
+    matching_technical_skills: list[str],
 ) -> str:
     """Create a clear explanation from rules, without unexplained AI guesses."""
     skill_text = ", ".join(matching_skills)
@@ -61,9 +103,14 @@ def recommendation_explanation(
         else "available ဖြစ်ပြီး"
     )
     work_text = "remote work" if project.work_type == WorkType.REMOTE else "on-site work"
+    technical_text = (
+        f" {', '.join(matching_technical_skills)} technical skills များလည်းကိုက်ညီပြီး"
+        if matching_technical_skills
+        else ""
+    )
 
     return (
-        f"{skill_text} skills များကိုက်ညီပြီး "
+        f"{skill_text} skills များကိုက်ညီပြီး{technical_text} "
         f"{availability_text} {work_text} ကို လက်ခံထားပါသည်။"
     )
 
@@ -79,24 +126,26 @@ def find_ranked_matches(
         if not student_is_eligible_for_project(student, project):
             continue
 
-        matching_skills = matched_skills(student, project)
-        score, matching_skills = calculate_score(student, project)
+        score, matching_skills, matching_technical_skills = calculate_score(student, project)
         candidates.append(
             MatchCandidateRead(
                 student_id=student.id,
-                name=user.name,
+                name=student.name or "Unnamed student",
                 skills=student.skills,
+                technical_skills=student.technical_skills or [],
                 availability=student.availability,
                 work_preference=student.work_preference,
                 portfolio_url=student.portfolio_url,
                 rating=student.rating,
                 completed_projects=student.completed_projects,
                 matched_skills=matching_skills,
+                matched_technical_skills=matching_technical_skills,
                 score=score,
                 explanation=recommendation_explanation(
                     student,
                     project,
                     matching_skills,
+                    matching_technical_skills,
                 ),
             )
         )

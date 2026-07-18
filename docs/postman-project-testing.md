@@ -33,7 +33,8 @@ Choose **Body -> raw -> JSON** and send:
   "title": "Tech Event Social Media Design",
   "description": "Create social-media posters for a university tech event.",
   "role": "GRAPHIC_DESIGNER",
-  "required_skills": ["GRAPHIC_DESIGN", "CANVA"],
+  "required_skills": ["GRAPHIC_DESIGN"],
+  "required_technical_skills": ["Canva"],
   "required_availability": "WEEKDAY_EVENINGS",
   "deadline": "2026-07-24",
   "work_type": "REMOTE",
@@ -49,6 +50,13 @@ Expected result: **201 Created**. The response must include:
   "status": "OPEN"
 }
 ```
+
+Project requirements are split deliberately:
+
+- `required_skills`: allowed matching categories in uppercase, for example `GRAPHIC_DESIGN`.
+- `required_technical_skills`: optional exact tools/technologies, for example `Canva`, `Figma`, or `Python`.
+
+Do not send `city`, `location`, `work_mode`, a nested `availability_time` object, or a nested `fee` object. This MVP uses `work_type`, `required_availability`, and `budget_mmk` instead. A project is remote or on-site; it does not currently match by city.
 
 Use a deadline that is today or in the future. The backend rejects past dates.
 
