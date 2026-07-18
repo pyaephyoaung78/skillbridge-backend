@@ -4,10 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models.enums import UserRole
+from app.models.enums import ProjectStatus, UserRole
 from app.models.project import Project
+from app.models.student_profile import StudentProfile
 from app.models.user import User
+from app.schemas.match import ProjectMatchesRead
 from app.schemas.project import ProjectCreate, ProjectRead
+from app.services.matching_service import find_top_matches
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 owner_router = APIRouter(prefix="/owners", tags=["Projects"])
@@ -80,6 +83,32 @@ def get_project(project_id: UUID, session: Session = Depends(get_session)) -> Pr
     """Read one project and its current status."""
     project = get_project_or_404(project_id, session)
     return project_response(project, session)
+
+
+@router.get("/{project_id}/matches", response_model=ProjectMatchesRead)
+def get_project_matches(
+    project_id: UUID,
+    session: Session = Depends(get_session),
+) -> ProjectMatchesRead:
+    """Return the top three eligible students using transparent rule-based scoring."""
+    project = get_project_or_404(project_id, session)
+    if project.status != ProjectStatus.OPEN:
+        raise HTTPException(
+            status_code=409,
+            detail="Matches are available only while a project is OPEN.",
+        )
+
+    students = session.exec(select(StudentProfile)).all()
+    students_with_users = [
+        (student, user)
+        for student in students
+        if (user := session.get(User, student.user_id)) is not None
+    ]
+
+    return ProjectMatchesRead(
+        project_id=project.id,
+        candidates=find_top_matches(project, students_with_users),
+    )
 
 
 @owner_router.get("/{owner_id}/projects", response_model=list[ProjectRead])

@@ -53,18 +53,16 @@ These endpoints are ready now:
 | Create project | `POST /projects` | Ready |
 | Read project | `GET /projects/{project_id}` | Ready |
 | Owner project list | `GET /owners/{owner_id}/projects` | Ready |
+| Get top 3 matches | `GET /projects/{project_id}/matches` | Ready |
+| Send invitation | `POST /invitations` | Ready |
+| Student invitations | `GET /students/{student_id}/invitations` | Ready |
+| Accept invitation | `POST /invitations/{invitation_id}/accept` | Ready |
+| Decline invitation | `POST /invitations/{invitation_id}/decline` | Ready |
+| Transcribe voice | `POST /voice/transcribe` | Ready after Gemini setup |
+| Parse student text | `POST /profiles/parse` | Ready after Gemini setup |
+| Parse project text | `POST /projects/parse-brief` | Ready after Gemini setup |
 
-These endpoints will be added next. You can build their screens and use mock data until the backend delivers them:
-
-| Feature | Planned endpoint |
-|---|---|
-| Get top 3 matches | `GET /projects/{project_id}/matches` |
-| Send invitation | `POST /invitations` |
-| Student invitations | `GET /students/{student_id}/invitations` |
-| Accept invitation | `POST /invitations/{invitation_id}/accept` |
-| Decline invitation | `POST /invitations/{invitation_id}/decline` |
-
-Voice transcription and AI parsing are later enhancements. Every voice screen must also have a normal text/form input.
+All core text-based MVP APIs are ready. Voice transcription and AI parsing are optional enhancements that need provider credentials; every voice screen must also keep a normal text/form input.
 
 ## 4. API base URL
 
@@ -155,7 +153,7 @@ UI label: Graphic Design
 API value: GRAPHIC_DESIGN
 ```
 
-## 6. Current student flow: build this now
+## 6. Student flow
 
 ### Screen 1: Role selection
 
@@ -271,20 +269,59 @@ Send only fields that changed. Example:
 
 Do not call `POST /students` again for an existing student. One user can have only one profile; a second create request returns `409 Conflict`.
 
-## 7. Future Project Owner flow
-
-Build these screens now, but use local mock data until their endpoints are available.
+## 7. Project Owner flow
 
 ```text
 Role Selection
   -> Project Owner Dashboard
-  -> Project Brief (text input first)
-  -> Project Draft Form
-  -> Post Project
+  -> Project Form (text input first)
+  -> Post paid project
   -> Top 3 Candidate Cards
   -> Candidate Detail
   -> Invitation Confirmation
   -> Project FILLED status
+```
+
+### Screen 1: Create a Project Owner demo user
+
+Use the same `POST /users` endpoint as the Student flow, but send the Project Owner role:
+
+```json
+{
+  "name": "Tech Event Club",
+  "role": "PROJECT_OWNER"
+}
+```
+
+Save the returned user ID as:
+
+```text
+ownerUserId
+```
+
+Important ID rule:
+
+```text
+owner_id   = User ID returned by POST /users
+student_id = Student Profile ID returned by POST /students
+```
+
+### Screen 2: Project Owner dashboard
+
+Load the owner's projects with:
+
+```text
+GET /owners/{ownerUserId}/projects
+```
+
+Show each project's title, budget, deadline, work type, and status.
+
+### Screen 3: Create a project
+
+Use a normal text/form screen first. When the owner confirms, call:
+
+```text
+POST /projects
 ```
 
 The project form will need:
@@ -300,7 +337,29 @@ work_type
 budget_mmk
 ```
 
-Do not show a required-count field. Every project is for one student.
+Example request:
+
+```json
+{
+  "owner_id": "owner-user-uuid",
+  "title": "Tech Event Social Media Design",
+  "description": "Create social-media posters for a university tech event.",
+  "role": "GRAPHIC_DESIGNER",
+  "required_skills": ["GRAPHIC_DESIGN", "CANVA"],
+  "required_availability": "WEEKDAY_EVENINGS",
+  "deadline": "2026-07-24",
+  "work_type": "REMOTE",
+  "budget_mmk": 60000
+}
+```
+
+Save the returned project ID as:
+
+```text
+projectId
+```
+
+Do not show a required-count field. Every project is for one student. The deadline must be today or later.
 
 The backend will set these itself:
 
@@ -311,11 +370,17 @@ status = OPEN
 
 Do not send these as editable Flutter form values.
 
-## 8. Future matching and invitation flow
+## 8. Matching and invitation flow
 
-### Candidate cards
+### Screen 4: Matched candidate cards
 
-The matching endpoint will return at most three candidates. A candidate card should show:
+After a project is created, call:
+
+```text
+GET /projects/{projectId}/matches
+```
+
+The backend returns at most three candidates. A candidate card should show:
 
 ```text
 student name
@@ -330,7 +395,69 @@ Invite button
 
 The frontend should display the backend score and explanation exactly as returned. Do not calculate a different score in Flutter.
 
-### Invitation rule
+If the candidate list is empty, show a friendly empty state such as: “No suitable available students were found for this project.”
+
+### Screen 5: Send one invitation
+
+When the owner selects one candidate, call:
+
+```text
+POST /invitations
+```
+
+```json
+{
+  "owner_id": "owner-user-uuid",
+  "project_id": "project-uuid",
+  "student_id": "student-profile-uuid-from-match-result"
+}
+```
+
+The result has status `PENDING`. Disable all Invite buttons while the request is loading. After success, show that an invitation is waiting for a response.
+
+### Screen 6: Student invitation inbox
+
+Load invitations for the current student profile:
+
+```text
+GET /students/{studentProfileId}/invitations
+```
+
+Before the student responds, show the data returned by the backend:
+
+```text
+project_title
+owner_name
+required_skills
+deadline
+work_type
+budget_mmk
+status
+```
+
+### Screen 7: Accept or decline
+
+To accept:
+
+```text
+POST /invitations/{invitationId}/accept
+```
+
+To decline:
+
+```text
+POST /invitations/{invitationId}/decline
+```
+
+Both requests use this JSON body:
+
+```json
+{
+  "student_id": "student-profile-uuid"
+}
+```
+
+### Invitation state rule
 
 ```text
 Project OPEN
@@ -351,6 +478,8 @@ If declined:
 
 The frontend should disable the Invite button while the request is loading. Once an invitation is pending or the project is filled, do not show another active Invite button.
 
+The current backend has no project-cancellation endpoint. Do not add a Cancel button that sends a request yet.
+
 ## 9. Error handling rules
 
 Always show a loading indicator while waiting for an API response.
@@ -362,6 +491,7 @@ Common HTTP responses:
 | `201` | Created successfully | save returned ID and navigate forward |
 | `200` | Successful read/update | show updated data |
 | `404` | User/profile/project not found | show a friendly “not found” message |
+| `403` | Current demo user is not allowed to perform this action | show “You cannot perform this action.” |
 | `409` | Conflict, such as duplicate profile | tell user to edit their existing profile |
 | `422` | Validation problem | show the backend `detail` message near the form |
 | `500` | Server error | show “Something went wrong. Please try again.” |
@@ -393,7 +523,49 @@ StudentProfileDto
 - isAvailable
 ```
 
-Later add `ProjectDto`, `MatchCandidateDto`, and `InvitationDto` when their endpoints are ready.
+```text
+ProjectDto
+- id
+- ownerId
+- ownerName
+- title
+- description
+- role
+- requiredSkills
+- requiredAvailability
+- deadline
+- workType
+- compensationType
+- budgetMmk
+- status
+
+MatchCandidateDto
+- studentId
+- name
+- skills
+- availability
+- workPreference
+- portfolioUrl
+- rating
+- completedProjects
+- matchedSkills
+- score
+- explanation
+
+InvitationDto
+- id
+- projectId
+- studentId
+- studentName
+- ownerName
+- projectTitle
+- requiredSkills
+- deadline
+- workType
+- budgetMmk
+- projectStatus
+- status
+```
 
 ## 11. Team coordination rule
 

@@ -3,3 +3,5 @@ sqlmodel
 uvicorn[standard]
 pytest
 httpx
+google-genai
+python-multipart
