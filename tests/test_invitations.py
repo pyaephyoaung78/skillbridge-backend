@@ -39,6 +39,7 @@ def create_student(client: TestClient, name: str) -> tuple[str, str]:
         "/students",
         json={
             "user_id": user_id,
+            "name": name,
             "university": "University of Yangon",
             "skills": ["GRAPHIC_DESIGN", "CANVA"],
             "availability": "WEEKDAY_EVENINGS",

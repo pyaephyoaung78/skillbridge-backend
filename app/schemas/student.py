@@ -11,6 +11,8 @@ class StudentProfileCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     user_id: UUID
+    transcript_id: UUID | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=150)
     university: str = Field(min_length=1, max_length=150)
     skills: list[str]
     technical_skills: list[str] = Field(default_factory=list)
@@ -29,6 +31,7 @@ class StudentProfileUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     university: str | None = Field(default=None, min_length=1, max_length=150)
+    transcript_id: UUID | None = None
     skills: list[str] | None = None
     technical_skills: list[str] | None = None
     availability: str | None = Field(default=None, min_length=1, max_length=50)
@@ -47,7 +50,7 @@ class StudentProfileRead(BaseModel):
 
     id: UUID
     user_id: UUID
-    name: str
+    name: str | None
     university: str
     skills: list[str]
     technical_skills: list[str] | None

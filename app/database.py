@@ -22,7 +22,10 @@ def _add_missing_sqlite_columns() -> None:
     """Apply the two small SQLite schema additions needed by this MVP."""
     required_columns = {
         "student_transcripts": {"extracted_technical_skills": "JSON"},
-        "student_profiles": {"technical_skills": "JSON"},
+        "student_profiles": {
+            "name": "TEXT",
+            "technical_skills": "JSON",
+        },
     }
     inspector = inspect(engine)
     existing_tables = set(inspector.get_table_names())

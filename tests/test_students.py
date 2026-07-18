@@ -38,6 +38,7 @@ def test_create_get_and_update_student_profile(client: TestClient) -> None:
         "/students",
         json={
             "user_id": user_id,
+            "name": "မေသဇင်",
             "university": "University of Yangon",
             "skills": ["GRAPHIC_DESIGN", "CANVA"],
             "technical_skills": ["Canva", "Adobe Photoshop"],
@@ -84,6 +85,7 @@ def test_student_profile_rejects_unknown_skills_and_duplicate_profiles(
 
     valid_payload = {
         "user_id": user_id,
+        "name": "မေသဇင်",
         "university": "University of Yangon",
         "skills": ["GRAPHIC_DESIGN"],
         "availability": "WEEKDAY_EVENINGS",

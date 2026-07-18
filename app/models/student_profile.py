@@ -19,6 +19,7 @@ class StudentProfile(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     user_id: UUID = Field(index=True, foreign_key="users.id")
+    name: str | None = Field(default=None, min_length=1, max_length=150)
     university: str = Field(min_length=1, max_length=150)
     skills: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     technical_skills: list[str] | None = Field(default=None, sa_column=Column(JSON, nullable=True))

@@ -49,6 +49,7 @@ def create_student(
         "/students",
         json={
             "user_id": user_id,
+            "name": name,
             "university": "University of Yangon",
             "skills": skills,
             "availability": availability,

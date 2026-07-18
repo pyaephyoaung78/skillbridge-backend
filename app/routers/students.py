@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 from app.database import get_session
 from app.models.enums import UserRole
 from app.models.student_profile import StudentProfile
+from app.models.student_transcript import StudentTranscript
 from app.models.user import User
 from app.schemas.student import (
     StudentProfileCreate,
@@ -25,14 +26,10 @@ def get_student_or_404(student_id: UUID, session: Session) -> StudentProfile:
 
 
 def student_response(student: StudentProfile, session: Session) -> StudentProfileRead:
-    user = session.get(User, student.user_id)
-    if user is None:
-        raise HTTPException(status_code=500, detail="Student user record is missing.")
-
     return StudentProfileRead(
         id=student.id,
         user_id=student.user_id,
-        name=user.name,
+        name=student.name,
         university=student.university,
         skills=student.skills,
         technical_skills=student.technical_skills,
@@ -71,7 +68,26 @@ def create_student_profile(
             detail="This user already has a student profile.",
         )
 
-    student = StudentProfile(**payload.model_dump())
+    confirmed_name = payload.name
+    if payload.transcript_id is not None:
+        transcript = session.get(StudentTranscript, payload.transcript_id)
+        if transcript is None:
+            raise HTTPException(status_code=404, detail="Transcript not found.")
+        if transcript.student_user_id != payload.user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="This transcript belongs to another student user.",
+            )
+        confirmed_name = transcript.extracted_name
+
+    if not confirmed_name:
+        raise HTTPException(
+            status_code=422,
+            detail="Provide a name or a transcript_id with an extracted_name.",
+        )
+
+    student_data = payload.model_dump(exclude={"transcript_id", "name"})
+    student = StudentProfile(name=confirmed_name, **student_data)
     session.add(student)
     session.commit()
     session.refresh(student)
@@ -97,7 +113,22 @@ def update_student_profile(
     """Update editable profile fields without changing the linked user."""
     student = get_student_or_404(student_id, session)
 
-    for field_name, value in payload.model_dump(exclude_unset=True).items():
+    updates = payload.model_dump(exclude_unset=True)
+    transcript_id = updates.pop("transcript_id", None)
+    if transcript_id is not None:
+        transcript = session.get(StudentTranscript, transcript_id)
+        if transcript is None:
+            raise HTTPException(status_code=404, detail="Transcript not found.")
+        if transcript.student_user_id != student.user_id:
+            raise HTTPException(
+                status_code=403,
+                detail="This transcript belongs to another student user.",
+            )
+        if not transcript.extracted_name:
+            raise HTTPException(status_code=422, detail="Transcript has no extracted_name.")
+        student.name = transcript.extracted_name
+
+    for field_name, value in updates.items():
         setattr(student, field_name, value)
     student.updated_at = datetime.now(timezone.utc)
 

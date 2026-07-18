@@ -251,8 +251,10 @@ Show these inputs:
 
 | UI field | Required? | API field |
 |---|---|---|
+| Name | yes for manual profile | `name` |
 | University | yes | `university` |
 | Skills, multi-select | yes, at least one | `skills` |
+| Technical skills, multi-select | no | `technical_skills` |
 | Availability | yes | `availability` |
 | Work preference | yes | `work_preference` |
 | Portfolio URL | no | `portfolio_url` |
@@ -263,12 +265,40 @@ When the user confirms the form, call `POST /students`.
 ```json
 {
   "user_id": "user-uuid-from-post-users",
+  "name": "မေသဇင်",
   "university": "University of Yangon",
   "skills": ["GRAPHIC_DESIGN", "CANVA"],
   "availability": "WEEKDAY_EVENINGS",
   "work_preference": "REMOTE",
   "portfolio_url": "https://www.behance.net/example",
   "is_available": true
+}
+```
+
+For a voice-created profile, do not copy the extracted name into the request. Send the saved transcript ID instead of `name`:
+
+```json
+{
+  "user_id": "user-uuid-from-post-users",
+  "transcript_id": "saved-transcript-uuid",
+  "university": "Computer University (Thaton)",
+  "skills": ["PROGRAMMING"],
+  "technical_skills": ["Python", "C++", "C#", "Java"],
+  "availability": "WEEKEND_EVENINGS",
+  "work_preference": "BOTH",
+  "is_available": true
+}
+```
+
+The backend checks that the transcript belongs to the same `user_id`, then copies `student_transcripts.extracted_name` into the new `student_profiles.name` column.
+
+For an existing profile created before this feature, copy its saved transcript name with:
+
+```json
+PATCH /students/{studentProfileId}
+
+{
+  "transcript_id": "saved-transcript-uuid"
 }
 ```
 
