@@ -21,10 +21,13 @@ router = APIRouter(tags=["AI and Voice"])
 
 AUDIO_MIME_TYPES = {
     ".m4a": "audio/mp4",
-    ".mp3": "audio/mpeg",
+    ".mp3": "audio/mp3",
     ".wav": "audio/wav",
     ".webm": "audio/webm",
     ".ogg": "audio/ogg",
+    ".aac": "audio/aac",
+    ".aiff": "audio/aiff",
+    ".flac": "audio/flac",
 }
 
 

@@ -58,15 +58,36 @@ These endpoints are ready now:
 | Student invitations | `GET /students/{student_id}/invitations` | Ready |
 | Accept invitation | `POST /invitations/{invitation_id}/accept` | Ready |
 | Decline invitation | `POST /invitations/{invitation_id}/decline` | Ready |
-| Transcribe voice | `POST /voice/transcribe` | Ready after Gemini setup |
-| Parse student text | `POST /profiles/parse` | Ready after Gemini setup |
-| Parse project text | `POST /projects/parse-brief` | Ready after Gemini setup |
+| Transcribe voice | `POST /voice/transcribe` | Available when `GEMINI_API_KEY` is configured |
+| Parse student text | `POST /profiles/parse` | Available when `GEMINI_API_KEY` is configured |
+| Parse project text | `POST /projects/parse-brief` | Available when `GEMINI_API_KEY` is configured |
 
 All core text-based MVP APIs are ready. Voice transcription and AI parsing are optional enhancements that need provider credentials; every voice screen must also keep a normal text/form input.
 
 ## 4. API base URL
 
-The backend runs locally on port `8000`.
+The current backend is deployed for team testing on the cloud server at:
+
+```text
+http://165.101.220.41:8000
+```
+
+Use this value in Flutter as the API base URL. Do not add a second `/` when joining it with a path.
+
+```dart
+const apiBaseUrl = 'http://165.101.220.41:8000';
+```
+
+Useful checks:
+
+```text
+http://165.101.220.41:8000/
+http://165.101.220.41:8000/docs
+```
+
+The cloud firewall must allow inbound TCP port `8000`. If the server IP changes, update `apiBaseUrl` and this guide. The current address is for development/testing; production should use a domain name and HTTPS.
+
+For local development, use the URL that matches the Flutter target:
 
 | Flutter target | Base URL |
 |---|---|
@@ -74,17 +95,18 @@ The backend runs locally on port `8000`.
 | Android emulator | `http://10.0.2.2:8000` |
 | Physical phone on the same Wi-Fi | `http://YOUR-COMPUTER-LAN-IP:8000` |
 
-For a physical phone, start FastAPI like this:
+The backend must listen on all interfaces when another device needs to reach it:
 
 ```bash
-.venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+source .venv/bin/activate
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-API documentation is available at:
+The cloud server currently uses the same command. Keep that terminal/process running while testing.
 
-```text
-http://127.0.0.1:8000/docs
-```
+### Flutter mobile HTTP note
+
+The temporary cloud URL uses `http`, not `https`. If Android blocks the request, enable cleartext HTTP for the debug build in `android/app/src/main/AndroidManifest.xml`, then switch to HTTPS when the final domain is configured. Never put the Gemini API key in Flutter.
 
 ## 5. Shared values: use these exact strings
 
@@ -572,3 +594,30 @@ InvitationDto
 When the frontend needs a field or endpoint that does not exist, ask the backend developer before guessing its JSON name or status value.
 
 The API documentation at `/docs` is the source of truth for currently available request and response formats.
+
+## 12. Current frontend handoff checklist
+
+The frontend developer can now build and connect these screens:
+
+- Role selection and demo user creation.
+- Student profile create, read, and edit.
+- Project Owner project create and project list.
+- Top-three match cards with the backend score and explanation.
+- One-invitation flow: send, pending, accept, or decline.
+- Project status display: `OPEN` or `FILLED`.
+- Optional voice transcription and AI draft parsing after the backend Gemini key is configured.
+
+Use this request order for the main demo:
+
+```text
+POST /users
+POST /students                  (student role)
+POST /users
+POST /projects                  (project owner role)
+GET  /projects/{projectId}/matches
+POST /invitations
+GET  /students/{studentId}/invitations
+POST /invitations/{id}/accept   OR   POST /invitations/{id}/decline
+```
+
+The voice and AI endpoints only return editable text/drafts. They never save a profile or project automatically. After the user confirms the draft, call the normal `POST /students` or `POST /projects` endpoint.
