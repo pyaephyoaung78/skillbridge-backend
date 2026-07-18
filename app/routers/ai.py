@@ -112,6 +112,7 @@ async def transcribe_voice(
         extracted_name=profile_draft.name if profile_draft else None,
         extracted_university=profile_draft.university if profile_draft else None,
         extracted_skills=(profile_draft.skills or None) if profile_draft else None,
+        extracted_technical_skills=(profile_draft.technical_skills or None) if profile_draft else None,
         extracted_availability=profile_draft.availability if profile_draft else None,
         extracted_work_preference=profile_draft.work_preference if profile_draft else None,
         parsing_status=parsing_status,

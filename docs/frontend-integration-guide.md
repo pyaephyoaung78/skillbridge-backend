@@ -59,11 +59,27 @@ These endpoints are ready now:
 | Student invitations | `GET /students/{student_id}/invitations` | Ready |
 | Accept invitation | `POST /invitations/{invitation_id}/accept` | Ready |
 | Decline invitation | `POST /invitations/{invitation_id}/decline` | Ready |
-| Transcribe voice | `POST /voice/transcribe` | Available when `GEMINI_API_KEY` is configured |
+| Transcribe voice and optionally save a draft | `POST /voice/transcribe` | Available when `GEMINI_API_KEY` is configured |
+| Student transcription history | `GET /student-users/{student_user_id}/transcripts` | Ready |
 | Parse student text | `POST /profiles/parse` | Available when `GEMINI_API_KEY` is configured |
 | Parse project text | `POST /projects/parse-brief` | Available when `GEMINI_API_KEY` is configured |
 
 All core text-based MVP APIs are ready. Voice transcription and AI parsing are optional enhancements that need provider credentials; every voice screen must also keep a normal text/form input.
+
+### Saved voice-profile draft flow
+
+To save a recording for a student, send `multipart/form-data` to `POST /voice/transcribe` with both fields:
+
+| Key | Type | Value |
+|---|---|---|
+| `file` | File | The audio recording |
+| `student_user_id` | Text | The Student User ID returned by `POST /users` |
+
+The response includes a saved `transcription` record and an optional `profile_draft`. Extracted fields can be `null` when speech was unclear or information was not spoken. Show those empty values in the form for the student to complete manually.
+
+`skills` contains controlled matching categories, such as `PROGRAMMING`. `technical_skills` contains exact technologies, such as `Python`, `C++`, `C#`, and `Java`. Send both fields when the student confirms their normal profile form.
+
+Do not automatically create or overwrite a `StudentProfile` from a transcript. The student must review/edit the draft, then submit the normal `POST /students` or `PATCH /students/{student_id}` request.
 
 ## 4. API base URL
 

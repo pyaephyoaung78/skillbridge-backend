@@ -26,6 +26,7 @@ class StudentProfileDraft(BaseModel):
     name: str | None = None
     university: str | None = None
     skills: list[str] = Field(default_factory=list)
+    technical_skills: list[str] = Field(default_factory=list)
     availability: str | None = None
     work_preference: WorkPreference | None = None
     missing_fields: list[str] = Field(default_factory=list)

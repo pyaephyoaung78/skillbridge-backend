@@ -40,6 +40,7 @@ def test_create_get_and_update_student_profile(client: TestClient) -> None:
             "user_id": user_id,
             "university": "University of Yangon",
             "skills": ["GRAPHIC_DESIGN", "CANVA"],
+            "technical_skills": ["Canva", "Adobe Photoshop"],
             "availability": "WEEKDAY_EVENINGS",
             "work_preference": "REMOTE",
             "portfolio_url": "https://www.behance.net/example",
@@ -50,6 +51,7 @@ def test_create_get_and_update_student_profile(client: TestClient) -> None:
     student = create_response.json()
     assert student["name"] == "မေသဇင်"
     assert student["is_available"] is True
+    assert student["technical_skills"] == ["Canva", "Adobe Photoshop"]
 
     get_response = client.get(f"/students/{student['id']}")
     assert get_response.status_code == 200

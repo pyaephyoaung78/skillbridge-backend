@@ -15,6 +15,7 @@ class StudentTranscriptRead(BaseModel):
     extracted_name: str | None
     extracted_university: str | None
     extracted_skills: list[str] | None
+    extracted_technical_skills: list[str] | None
     extracted_availability: str | None
     extracted_work_preference: WorkPreference | None
     parsing_status: str

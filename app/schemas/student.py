@@ -13,6 +13,7 @@ class StudentProfileCreate(BaseModel):
     user_id: UUID
     university: str = Field(min_length=1, max_length=150)
     skills: list[str]
+    technical_skills: list[str] = Field(default_factory=list)
     availability: str = Field(min_length=1, max_length=50)
     work_preference: WorkPreference
     portfolio_url: str | None = Field(default=None, max_length=500)
@@ -29,6 +30,7 @@ class StudentProfileUpdate(BaseModel):
 
     university: str | None = Field(default=None, min_length=1, max_length=150)
     skills: list[str] | None = None
+    technical_skills: list[str] | None = None
     availability: str | None = Field(default=None, min_length=1, max_length=50)
     work_preference: WorkPreference | None = None
     portfolio_url: str | None = Field(default=None, max_length=500)
@@ -48,6 +50,7 @@ class StudentProfileRead(BaseModel):
     name: str
     university: str
     skills: list[str]
+    technical_skills: list[str] | None
     availability: str
     work_preference: WorkPreference
     portfolio_url: str | None

@@ -78,6 +78,46 @@ def test_voice_endpoint_returns_a_burmese_transcript(monkeypatch) -> None:
     assert response.json()["transcript"] == "Graphic Design နဲ့ Canva တတ်ပါတယ်။"
 
 
+def test_voice_endpoint_saves_exact_technical_skills(monkeypatch) -> None:
+    def fake_transcribe(_: bytes, __: str) -> str:
+        return "Python, C++, C#, Java ကို Backend ရေးနိုင်ပါတယ်"
+
+    def fake_parse(_: str) -> StudentProfileDraft:
+        return StudentProfileDraft(
+            skills=["PROGRAMMING"],
+            technical_skills=["Python", "C++", "C#", "Java"],
+            missing_fields=["name", "university", "availability", "work_preference"],
+        )
+
+    monkeypatch.setattr(ai, "transcribe_burmese_audio", fake_transcribe)
+    monkeypatch.setattr(ai, "parse_student_profile", fake_parse)
+    with TestClient(app) as client:
+        user_response = client.post("/users", json={"name": "အောင်မျိုးကျော်", "role": "STUDENT"})
+        student_user_id = user_response.json()["id"]
+        response = client.post(
+            "/voice/transcribe",
+            data={"student_user_id": student_user_id},
+            files={"file": ("profile.m4a", b"audio bytes", "audio/mp4")},
+        )
+        history_response = client.get(f"/student-users/{student_user_id}/transcripts")
+
+    assert response.status_code == 200
+    assert response.json()["transcription"]["extracted_skills"] == ["PROGRAMMING"]
+    assert response.json()["transcription"]["extracted_technical_skills"] == [
+        "Python",
+        "C++",
+        "C#",
+        "Java",
+    ]
+    assert history_response.status_code == 200
+    assert history_response.json()[0]["extracted_technical_skills"] == [
+        "Python",
+        "C++",
+        "C#",
+        "Java",
+    ]
+
+
 def test_m4a_audio_is_converted_to_wav_for_gemini(monkeypatch) -> None:
     def fake_convert(audio_bytes: bytes, input_suffix: str) -> bytes:
         assert audio_bytes == b"m4a bytes"

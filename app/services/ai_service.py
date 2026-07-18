@@ -33,7 +33,10 @@ Rules:
 - Return structured JSON only through the response schema.
 - Never invent a name, university, skill, availability, or work preference.
 - For unknown fields, return null (or an empty skills list) and add the API field name to missing_fields.
-- Allowed skills only: {", ".join(sorted(ALLOWED_SKILLS))}.
+- `skills` must use only these SkillBridge matching categories: {", ".join(sorted(ALLOWED_SKILLS))}.
+- `technical_skills` must preserve the exact technology, language, framework, tool, or software name spoken by the student in English.
+- For example, Python, C++, C#, and Java must be returned in `technical_skills`; map them to `PROGRAMMING` in `skills`.
+- Do not translate, transliterate, group, or replace exact technical terms in `technical_skills`.
 - work_preference must be REMOTE, ON_SITE, or BOTH.
 - A portfolio URL is entered manually elsewhere; do not extract one.
 """.strip()

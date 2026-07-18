@@ -35,6 +35,7 @@ def student_response(student: StudentProfile, session: Session) -> StudentProfil
         name=user.name,
         university=student.university,
         skills=student.skills,
+        technical_skills=student.technical_skills,
         availability=student.availability,
         work_preference=student.work_preference,
         portfolio_url=student.portfolio_url,

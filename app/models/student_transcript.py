@@ -18,6 +18,10 @@ class StudentTranscript(SQLModel, table=True):
     extracted_name: str | None = None
     extracted_university: str | None = None
     extracted_skills: list[str] | None = Field(default=None, sa_column=Column(JSON, nullable=True))
+    extracted_technical_skills: list[str] | None = Field(
+        default=None,
+        sa_column=Column(JSON, nullable=True),
+    )
     extracted_availability: str | None = None
     extracted_work_preference: WorkPreference | None = None
     parsing_status: str = Field(default="TRANSCRIBED_ONLY", max_length=30)
