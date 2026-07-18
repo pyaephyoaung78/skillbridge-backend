@@ -107,7 +107,14 @@ def _gemini_json(prompt: str, response_schema: type[StudentProfileDraft] | type[
         from google import genai
         from google.genai import types
 
-        client = genai.Client(api_key=settings.gemini_api_key)
+        # Initialize the client with your Cloudflare Worker proxy endpoint
+        client = genai.Client(
+            api_key=settings.gemini_api_key,
+            http_options={
+                "api_endpoint": "gemini-proxy35.aungmkyaw03.workers.dev"
+            }
+        )
+        
         response = client.models.generate_content(
             model=settings.gemini_model,
             contents=prompt,

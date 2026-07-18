@@ -100,7 +100,15 @@ def transcribe_burmese_audio(audio_bytes: bytes, mime_type: str) -> str:
         from google.genai import types
 
         gemini_audio_bytes, gemini_mime_type = prepare_audio_for_gemini(audio_bytes, mime_type)
-        client = genai.Client(api_key=settings.gemini_api_key)
+        
+        # Initialize the client with your Cloudflare Worker proxy endpoint
+        client = genai.Client(
+            api_key=settings.gemini_api_key,
+            http_options={
+                "api_endpoint": "gemini-proxy35.aungmkyaw03.workers.dev"
+            }
+        )
+        
         response = client.models.generate_content(
             model=settings.gemini_audio_model,
             contents=[
