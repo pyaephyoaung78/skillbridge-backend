@@ -1,4 +1,5 @@
 from datetime import date
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -54,3 +55,12 @@ class ProjectDraft(BaseModel):
     @classmethod
     def required_draft_skills_must_be_allowed(cls, skills: list[str]) -> list[str]:
         return validate_draft_skills(skills)
+
+
+class MatchRecommendationDraft(BaseModel):
+    student_id: UUID
+    recommendation: str = Field(min_length=1, max_length=300)
+
+
+class MatchRecommendationsDraft(BaseModel):
+    recommendations: list[MatchRecommendationDraft]

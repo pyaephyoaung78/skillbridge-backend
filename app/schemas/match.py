@@ -17,8 +17,22 @@ class MatchCandidateRead(BaseModel):
     matched_skills: list[str]
     score: int
     explanation: str
+    priority_rank: int | None = None
 
 
 class ProjectMatchesRead(BaseModel):
     project_id: UUID
     candidates: list[MatchCandidateRead]
+
+
+class MatchRecommendationRead(BaseModel):
+    student_id: UUID
+    priority_rank: int
+    score: int
+    recommendation: str
+    source: str
+
+
+class ProjectRecommendationsRead(BaseModel):
+    project_id: UUID
+    recommendations: list[MatchRecommendationRead]

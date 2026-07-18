@@ -68,12 +68,11 @@ def recommendation_explanation(
     )
 
 
-def find_top_matches(
+def find_ranked_matches(
     project: Project,
     students_with_users: list[tuple[StudentProfile, User]],
-    limit: int = 3,
 ) -> list[MatchCandidateRead]:
-    """Filter eligible students, score them, and return only the best candidates."""
+    """Filter eligible students and return every match in transparent score order."""
     candidates: list[MatchCandidateRead] = []
 
     for student, user in students_with_users:
@@ -102,4 +101,8 @@ def find_top_matches(
             )
         )
 
-    return sorted(candidates, key=lambda candidate: (-candidate.score, candidate.name))[:limit]
+    ranked_candidates = sorted(candidates, key=lambda candidate: (-candidate.score, candidate.name))
+    return [
+        candidate.model_copy(update={"priority_rank": index if index <= 3 else None})
+        for index, candidate in enumerate(ranked_candidates, start=1)
+    ]

@@ -1,4 +1,5 @@
 from uuid import UUID
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
@@ -8,12 +9,18 @@ from app.models.enums import ProjectStatus, UserRole
 from app.models.project import Project
 from app.models.student_profile import StudentProfile
 from app.models.user import User
-from app.schemas.match import ProjectMatchesRead
+from app.schemas.match import (
+    MatchRecommendationRead,
+    ProjectMatchesRead,
+    ProjectRecommendationsRead,
+)
 from app.schemas.project import ProjectCreate, ProjectRead
-from app.services.matching_service import find_top_matches
+from app.services.ai_service import AIServiceError, AIServiceNotConfiguredError, generate_match_recommendations
+from app.services.matching_service import find_ranked_matches
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 owner_router = APIRouter(prefix="/owners", tags=["Projects"])
+logger = logging.getLogger(__name__)
 
 
 def get_project_or_404(project_id: UUID, session: Session) -> Project:
@@ -90,7 +97,7 @@ def get_project_matches(
     project_id: UUID,
     session: Session = Depends(get_session),
 ) -> ProjectMatchesRead:
-    """Return the top three eligible students using transparent rule-based scoring."""
+    """Return every eligible student, with the highest three marked as priorities."""
     project = get_project_or_404(project_id, session)
     if project.status != ProjectStatus.OPEN:
         raise HTTPException(
@@ -107,7 +114,66 @@ def get_project_matches(
 
     return ProjectMatchesRead(
         project_id=project.id,
-        candidates=find_top_matches(project, students_with_users),
+        candidates=find_ranked_matches(project, students_with_users),
+    )
+
+
+@router.post("/{project_id}/recommendations", response_model=ProjectRecommendationsRead)
+def create_project_recommendations(
+    project_id: UUID,
+    session: Session = Depends(get_session),
+) -> ProjectRecommendationsRead:
+    """Generate AI explanations for the top three; fall back to factual rule explanations."""
+    project = get_project_or_404(project_id, session)
+    if project.status != ProjectStatus.OPEN:
+        raise HTTPException(
+            status_code=409,
+            detail="Recommendations are available only while a project is OPEN.",
+        )
+
+    students = session.exec(select(StudentProfile)).all()
+    students_with_users = [
+        (student, user)
+        for student in students
+        if (user := session.get(User, student.user_id)) is not None
+    ]
+    priority_candidates = find_ranked_matches(project, students_with_users)[:3]
+    if not priority_candidates:
+        return ProjectRecommendationsRead(project_id=project.id, recommendations=[])
+
+    fallback = {
+        candidate.student_id: MatchRecommendationRead(
+            student_id=candidate.student_id,
+            priority_rank=candidate.priority_rank or 0,
+            score=candidate.score,
+            recommendation=candidate.explanation,
+            source="RULE_BASED_FALLBACK",
+        )
+        for candidate in priority_candidates
+    }
+
+    try:
+        ai_recommendations = generate_match_recommendations(project, priority_candidates)
+    except (AIServiceNotConfiguredError, AIServiceError):
+        logger.exception("Could not generate AI match recommendations; using rule-based fallback")
+        return ProjectRecommendationsRead(
+            project_id=project.id,
+            recommendations=list(fallback.values()),
+        )
+
+    for ai_recommendation in ai_recommendations:
+        fallback_recommendation = fallback.get(ai_recommendation.student_id)
+        if fallback_recommendation is not None:
+            fallback[ai_recommendation.student_id] = fallback_recommendation.model_copy(
+                update={
+                    "recommendation": ai_recommendation.recommendation,
+                    "source": "AI",
+                }
+            )
+
+    return ProjectRecommendationsRead(
+        project_id=project.id,
+        recommendations=[fallback[candidate.student_id] for candidate in priority_candidates],
     )
 
 

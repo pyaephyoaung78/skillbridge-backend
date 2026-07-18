@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, create_engine
 
 from app.database import get_session
+from app.routers import projects
 from main import app
 
 
@@ -79,7 +80,7 @@ def create_project(client: TestClient) -> str:
     return response.json()["id"]
 
 
-def test_matches_are_filtered_scored_and_limited_to_top_three(client: TestClient) -> None:
+def test_matches_are_filtered_scored_and_prioritize_the_top_three(client: TestClient) -> None:
     create_student(
         client,
         name="မေသဇင်",
@@ -99,6 +100,12 @@ def test_matches_are_filtered_scored_and_limited_to_top_three(client: TestClient
         name="အိမ့်ပိုး",
         skills=["GRAPHIC_DESIGN"],
         availability="WEEKDAY_EVENINGS",
+    )
+    create_student(
+        client,
+        name="သီဟ",
+        skills=["GRAPHIC_DESIGN"],
+        availability="WEEKENDS",
     )
     create_student(
         client,
@@ -123,7 +130,35 @@ def test_matches_are_filtered_scored_and_limited_to_top_three(client: TestClient
         "မေသဇင်",
         "ကိုမင်း",
         "အိမ့်ပိုး",
+        "သီဟ",
     ]
-    assert [candidate["score"] for candidate in candidates] == [100, 75, 68]
+    assert [candidate["score"] for candidate in candidates] == [100, 75, 68, 43]
+    assert [candidate["priority_rank"] for candidate in candidates] == [1, 2, 3, None]
     assert candidates[0]["matched_skills"] == ["GRAPHIC_DESIGN", "CANVA"]
     assert candidates[0]["explanation"]
+
+
+def test_match_recommendations_fall_back_to_rule_based_text_when_ai_is_unavailable(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    create_student(
+        client,
+        name="မေသဇင်",
+        skills=["GRAPHIC_DESIGN", "CANVA"],
+        availability="WEEKDAY_EVENINGS",
+    )
+    project_id = create_project(client)
+
+    def ai_unavailable(*_args):
+        raise projects.AIServiceNotConfiguredError("GEMINI_API_KEY is not configured.")
+
+    monkeypatch.setattr(projects, "generate_match_recommendations", ai_unavailable)
+    response = client.post(f"/projects/{project_id}/recommendations")
+
+    assert response.status_code == 200
+    recommendation = response.json()["recommendations"][0]
+    assert recommendation["priority_rank"] == 1
+    assert recommendation["score"] == 95
+    assert recommendation["source"] == "RULE_BASED_FALLBACK"
+    assert recommendation["recommendation"]

@@ -4,7 +4,14 @@ from pydantic import ValidationError
 
 from app.config import get_settings
 from app.constants import ALLOWED_SKILLS
-from app.schemas.ai import ProjectDraft, StudentProfileDraft
+from app.models.project import Project
+from app.schemas.ai import (
+    MatchRecommendationDraft,
+    MatchRecommendationsDraft,
+    ProjectDraft,
+    StudentProfileDraft,
+)
+from app.schemas.match import MatchCandidateRead
 
 
 class AIServiceNotConfiguredError(Exception):
@@ -51,6 +58,43 @@ Rules:
 - work_type must be REMOTE or ON_SITE.
 - budget_mmk must be a positive integer in MMK. Do not create a budget if it was not stated.
 - This MVP always represents paid work, so do not return compensation type or project status.
+""".strip()
+
+
+def _match_recommendation_prompt(
+    project: Project,
+    candidates: list[MatchCandidateRead],
+) -> str:
+    candidate_lines = "\n".join(
+        (
+            f"- student_id: {candidate.student_id}; name: {candidate.name}; "
+            f"rank: {candidate.priority_rank}; score: {candidate.score}%; "
+            f"matched_skills: {', '.join(candidate.matched_skills)}; "
+            f"availability: {candidate.availability}; "
+            f"project_required_availability: {project.required_availability}; "
+            f"work_preference: {candidate.work_preference}; "
+            f"portfolio: {'yes' if candidate.portfolio_url else 'no'}"
+        )
+        for candidate in candidates
+    )
+    return f"""
+Write one short, friendly Burmese recommendation for each SkillBridge priority candidate.
+
+Project: {project.title}
+Project work type: {project.work_type}
+Required skills: {', '.join(project.required_skills)}
+
+Candidates:
+{candidate_lines}
+
+Rules:
+- Return structured JSON only through the response schema.
+- Return exactly one item for each supplied student_id.
+- Keep the exact student_id values.
+- Explain the score using only the supplied facts: matching skills, availability, work preference, and portfolio.
+- Mention the score percentage naturally.
+- Do not invent experience, ratings, availability, or skills.
+- Write each recommendation in one or two short Burmese sentences.
 """.strip()
 
 
@@ -129,3 +173,20 @@ def parse_project_brief(text: str) -> ProjectDraft:
     except ValidationError as error:
         raise AIServiceError("Gemini returned an invalid project draft.") from error
     return _normalize_project_missing_fields(draft)
+
+
+def generate_match_recommendations(
+    project: Project,
+    candidates: list[MatchCandidateRead],
+) -> list[MatchRecommendationDraft]:
+    """Generate factual Burmese explanations for the already-ranked top candidates."""
+    try:
+        draft = MatchRecommendationsDraft.model_validate_json(
+            _gemini_json(
+                _match_recommendation_prompt(project, candidates),
+                MatchRecommendationsDraft,
+            )
+        )
+    except ValidationError as error:
+        raise AIServiceError("Gemini returned invalid match recommendations.") from error
+    return draft.recommendations

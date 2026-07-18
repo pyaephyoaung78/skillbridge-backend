@@ -53,7 +53,8 @@ These endpoints are ready now:
 | Create project | `POST /projects` | Ready |
 | Read project | `GET /projects/{project_id}` | Ready |
 | Owner project list | `GET /owners/{owner_id}/projects` | Ready |
-| Get top 3 matches | `GET /projects/{project_id}/matches` | Ready |
+| Get all matches, with top 3 priority ranks | `GET /projects/{project_id}/matches` | Ready |
+| Generate top 3 recommendations | `POST /projects/{project_id}/recommendations` | Ready with AI fallback |
 | Send invitation | `POST /invitations` | Ready |
 | Student invitations | `GET /students/{student_id}/invitations` | Ready |
 | Accept invitation | `POST /invitations/{invitation_id}/accept` | Ready |
@@ -402,7 +403,9 @@ After a project is created, call:
 GET /projects/{projectId}/matches
 ```
 
-The backend returns at most three candidates. A candidate card should show:
+The backend returns **every eligible student**, ordered by matching score. The first three candidates have `priority_rank` values `1`, `2`, and `3`; every remaining candidate has `priority_rank: null`.
+
+Show a **Top 3 Recommended Students** section first, then show all remaining candidates in an **Other Eligible Students** section. A candidate card should show:
 
 ```text
 student name
@@ -411,11 +414,36 @@ availability
 work preference
 portfolio link, if present
 match score
-recommendation explanation
+rule-based explanation
 Invite button
 ```
 
 The frontend should display the backend score and explanation exactly as returned. Do not calculate a different score in Flutter.
+
+After rendering the top three cards, call:
+
+```text
+POST /projects/{projectId}/recommendations
+```
+
+No request body is required. It returns one short Burmese recommendation for each priority candidate:
+
+```json
+{
+  "project_id": "project-uuid",
+  "recommendations": [
+    {
+      "student_id": "student-profile-uuid",
+      "priority_rank": 1,
+      "score": 100,
+      "recommendation": "100% ကိုက်ညီမှုရှိပြီး...",
+      "source": "AI"
+    }
+  ]
+}
+```
+
+Match ranking always stays rule-based. AI only writes the human-friendly explanation. If Gemini is unavailable, the endpoint returns `source: "RULE_BASED_FALLBACK"`; display that text normally so the owner screen never fails.
 
 If the candidate list is empty, show a friendly empty state such as: “No suitable available students were found for this project.”
 
