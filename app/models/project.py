@@ -14,26 +14,32 @@ def utc_now() -> datetime:
 class Project(SQLModel, table=True):
     """A paid short-term project that can be filled by one student."""
 
-    __tablename__ = "projects"
+    tablename = "projects"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     owner_id: UUID = Field(index=True, foreign_key="users.id")
+
+    # Voice agent မထုတ်နိုင်လျှင် null ခွင့်ပြုသော fields
     title: str | None = Field(default=None, max_length=150)
-    description: str = Field(min_length=1, max_length=2_000)
-    role: str = Field(min_length=1, max_length=100)
-    required_skills: list[str] = Field(
-        default_factory=list,
-        sa_column=Column(JSON, nullable=False),
+    description: str | None = Field(default=None, max_length=2_000)
+    role: str | None = Field(default=None, max_length=100)
+
+    required_skills: list[str] | None = Field(
+        default=None,
+        sa_column=Column(JSON, nullable=True),
     )
     required_technical_skills: list[str] | None = Field(
         default=None,
         sa_column=Column(JSON, nullable=True),
     )
-    required_availability: str = Field(min_length=1, max_length=50)
-    deadline: date
-    work_type: WorkType
+
+    required_availability: str | None = Field(default=None, max_length=50)
+    deadline: date | None = Field(default=None)
+    work_type: WorkType | None = Field(default=None)
+    budget_mmk: int | None = Field(default=None, ge=1)
+
+    # System-managed fields
     compensation_type: str = Field(default="PAID", max_length=20)
-    budget_mmk: int = Field(ge=1)
     status: ProjectStatus = Field(default=ProjectStatus.OPEN)
     created_at: datetime = Field(default_factory=utc_now, nullable=False)
     updated_at: datetime = Field(default_factory=utc_now, nullable=False)
