@@ -66,6 +66,17 @@ def test_create_get_and_list_owner_projects(client: TestClient) -> None:
     assert len(list_response.json()) == 1
 
 
+def test_project_title_can_be_null(client: TestClient) -> None:
+    owner_id = create_user(client, "PROJECT_OWNER")
+    payload = project_payload(owner_id)
+    payload.pop("title")
+
+    response = client.post("/projects", json=payload)
+
+    assert response.status_code == 201
+    assert response.json()["title"] is None
+
+
 def test_project_rejects_invalid_budget_and_unknown_skills(client: TestClient) -> None:
     owner_id = create_user(client, "PROJECT_OWNER")
     invalid_budget = project_payload(owner_id)

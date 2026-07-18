@@ -422,7 +422,7 @@ POST /projects
 The project form will need:
 
 ```text
-title
+title (optional)
 description
 role
 required_skills
@@ -524,7 +524,7 @@ The response is not yet saved as a project:
 }
 ```
 
-Show these draft values as read-only. If `missing_fields` is empty, enable **Confirm**. On confirmation, copy the returned draft values into `POST /projects` and add `owner_id`. Do not provide edit controls. If `missing_fields` contains anything, disable Confirm and ask the owner to record again.
+Show these draft values as read-only. `title` can be `null`; display `Untitled project` in that case. If every other required value is present and `missing_fields` is empty, enable **Confirm**. On confirmation, copy the returned draft values into `POST /projects` and add `owner_id`. Do not provide edit controls. If `missing_fields` contains anything, disable Confirm and ask the owner to record again.
 
 ## 8. Matching and invitation flow
 

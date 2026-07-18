@@ -26,7 +26,7 @@ class InvitationRead(BaseModel):
     student_id: UUID
     student_name: str
     owner_name: str
-    project_title: str
+    project_title: str | None
     required_skills: list[str]
     deadline: date
     work_type: WorkType

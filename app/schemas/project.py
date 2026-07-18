@@ -11,7 +11,7 @@ class ProjectCreate(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     owner_id: UUID
-    title: str = Field(min_length=1, max_length=150)
+    title: str | None = Field(default=None, max_length=150)
     description: str = Field(min_length=1, max_length=2_000)
     role: str = Field(min_length=1, max_length=100)
     required_skills: list[str]
@@ -46,7 +46,7 @@ class ProjectRead(BaseModel):
     id: UUID
     owner_id: UUID
     owner_name: str
-    title: str
+    title: str | None
     description: str
     role: str
     required_skills: list[str]

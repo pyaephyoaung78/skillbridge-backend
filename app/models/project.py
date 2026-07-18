@@ -18,7 +18,7 @@ class Project(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     owner_id: UUID = Field(index=True, foreign_key="users.id")
-    title: str = Field(min_length=1, max_length=150)
+    title: str | None = Field(default=None, max_length=150)
     description: str = Field(min_length=1, max_length=2_000)
     role: str = Field(min_length=1, max_length=100)
     required_skills: list[str] = Field(

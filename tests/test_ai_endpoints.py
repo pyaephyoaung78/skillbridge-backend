@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.routers import ai
 from app.schemas.ai import ProjectDraft, StudentProfileDraft
-from app.services import voice_service
+from app.services import ai_service, voice_service
 from main import app
 
 
@@ -25,6 +25,50 @@ def test_profile_parse_returns_a_draft_without_saving(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json()["skills"] == ["GRAPHIC_DESIGN", "CANVA"]
+
+
+def test_student_parser_normalizes_markdown_json_and_burmese_values(monkeypatch) -> None:
+    raw_response = """```json
+    {
+      "name": "မေသဇင်",
+      "university": "University of Yangon",
+      "skills": ["Graphic Design", "Social Media"],
+      "technical_skills": ["Figma", "figma", "Canva"],
+      "availability": "စနေ၊ တနင်္ဂနွေ ညနေပိုင်း",
+      "work_preference": "remote work"
+    }
+    ```"""
+    monkeypatch.setattr(ai_service, "_gemini_json", lambda *_args: raw_response)
+
+    draft = ai_service.parse_student_profile("Burmese transcript")
+
+    assert draft.skills == ["GRAPHIC_DESIGN", "SOCIAL_MEDIA_DESIGN"]
+    assert draft.technical_skills == ["Figma", "Canva"]
+    assert draft.availability == "WEEKEND_EVENINGS"
+    assert draft.work_preference == "REMOTE"
+    assert draft.missing_fields == []
+
+
+def test_student_parser_returns_review_draft_when_ai_fields_are_invalid(monkeypatch) -> None:
+    raw_response = """
+    {
+      "name": 123,
+      "skills": ["Not a SkillBridge category"],
+      "availability": "weekends whenever possible",
+      "work_preference": "work from cafe"
+    }
+    """
+    monkeypatch.setattr(ai_service, "_gemini_json", lambda *_args: raw_response)
+
+    draft = ai_service.parse_student_profile("Burmese transcript")
+
+    assert draft.name is None
+    assert draft.skills == []
+    assert draft.availability is None
+    assert draft.work_preference is None
+    assert {"name", "university", "skills", "availability", "work_preference"}.issubset(
+        draft.missing_fields
+    )
 
 
 def test_project_parse_returns_a_draft_without_saving(monkeypatch) -> None:
