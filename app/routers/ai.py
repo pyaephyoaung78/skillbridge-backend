@@ -1,14 +1,22 @@
+import logging
 from pathlib import Path
+from uuid import UUID
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlmodel import Session, select
 
 from app.config import get_settings
+from app.database import get_session
+from app.models.enums import UserRole
+from app.models.student_transcript import StudentTranscript
+from app.models.user import User
 from app.schemas.ai import (
     ParseTextRequest,
     ProjectDraft,
     StudentProfileDraft,
     TranscriptResponse,
 )
+from app.schemas.transcript import StudentTranscriptRead
 from app.services.ai_service import (
     AIServiceError,
     AIServiceNotConfiguredError,
@@ -18,6 +26,7 @@ from app.services.ai_service import (
 from app.services.voice_service import transcribe_burmese_audio
 
 router = APIRouter(tags=["AI and Voice"])
+logger = logging.getLogger(__name__)
 
 AUDIO_MIME_TYPES = {
     ".m4a": "audio/mp4",
@@ -52,9 +61,25 @@ def get_audio_mime_type(file: UploadFile) -> str:
     return mime_type
 
 
+def get_student_user_or_404(student_user_id: UUID, session: Session) -> User:
+    user = session.get(User, student_user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Student user not found.")
+    if user.role != UserRole.STUDENT:
+        raise HTTPException(
+            status_code=422,
+            detail="Transcripts can only be saved for a STUDENT user.",
+        )
+    return user
+
+
 @router.post("/voice/transcribe", response_model=TranscriptResponse)
-async def transcribe_voice(file: UploadFile = File(...)) -> TranscriptResponse:
-    """Convert a short Burmese recording to editable text. It does not save data."""
+async def transcribe_voice(
+    file: UploadFile = File(...),
+    student_user_id: UUID | None = Form(default=None),
+    session: Session = Depends(get_session),
+) -> TranscriptResponse:
+    """Convert Burmese audio to text and optionally save a nullable student profile draft."""
     mime_type = get_audio_mime_type(file)
 
     audio_bytes = await file.read()
@@ -67,7 +92,53 @@ async def transcribe_voice(file: UploadFile = File(...)) -> TranscriptResponse:
         transcript = transcribe_burmese_audio(audio_bytes, mime_type)
     except (AIServiceNotConfiguredError, AIServiceError) as error:
         raise provider_error_to_http(error) from error
-    return TranscriptResponse(transcript=transcript)
+
+    # Preserve the original endpoint behavior when no student user ID is sent.
+    if student_user_id is None:
+        return TranscriptResponse(transcript=transcript)
+
+    get_student_user_or_404(student_user_id, session)
+    profile_draft: StudentProfileDraft | None = None
+    parsing_status = "TRANSCRIBED_ONLY"
+    try:
+        profile_draft = parse_student_profile(transcript)
+        parsing_status = "PARSED" if not profile_draft.missing_fields else "NEEDS_REVIEW"
+    except (AIServiceNotConfiguredError, AIServiceError):
+        logger.exception("Could not extract a profile draft from the saved transcript")
+
+    saved_transcript = StudentTranscript(
+        student_user_id=student_user_id,
+        transcript=transcript,
+        extracted_name=profile_draft.name if profile_draft else None,
+        extracted_university=profile_draft.university if profile_draft else None,
+        extracted_skills=(profile_draft.skills or None) if profile_draft else None,
+        extracted_availability=profile_draft.availability if profile_draft else None,
+        extracted_work_preference=profile_draft.work_preference if profile_draft else None,
+        parsing_status=parsing_status,
+    )
+    session.add(saved_transcript)
+    session.commit()
+    session.refresh(saved_transcript)
+    return TranscriptResponse(
+        transcript=transcript,
+        transcription=StudentTranscriptRead.model_validate(saved_transcript),
+        profile_draft=profile_draft,
+    )
+
+
+@router.get("/student-users/{student_user_id}/transcripts", response_model=list[StudentTranscriptRead])
+def list_student_transcripts(
+    student_user_id: UUID,
+    session: Session = Depends(get_session),
+) -> list[StudentTranscriptRead]:
+    """Return a student's saved voice transcripts, newest first."""
+    get_student_user_or_404(student_user_id, session)
+    transcripts = session.exec(
+        select(StudentTranscript)
+        .where(StudentTranscript.student_user_id == student_user_id)
+        .order_by(StudentTranscript.created_at.desc())
+    ).all()
+    return [StudentTranscriptRead.model_validate(transcript) for transcript in transcripts]
 
 
 @router.post("/profiles/parse", response_model=StudentProfileDraft)

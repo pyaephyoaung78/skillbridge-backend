@@ -5,17 +5,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.constants import ALLOWED_SKILLS
 from app.models.enums import WorkPreference, WorkType
+from app.schemas.transcript import StudentTranscriptRead
 
 
 class ParseTextRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     text: str = Field(min_length=1, max_length=5_000)
-
-
-class TranscriptResponse(BaseModel):
-    transcript: str
-    language_code: str = "my-MM"
 
 
 def validate_draft_skills(skills: list[str]) -> list[str]:
@@ -38,6 +34,13 @@ class StudentProfileDraft(BaseModel):
     @classmethod
     def draft_skills_must_be_allowed(cls, skills: list[str]) -> list[str]:
         return validate_draft_skills(skills)
+
+
+class TranscriptResponse(BaseModel):
+    transcript: str
+    language_code: str = "my-MM"
+    transcription: StudentTranscriptRead | None = None
+    profile_draft: StudentProfileDraft | None = None
 
 
 class ProjectDraft(BaseModel):
