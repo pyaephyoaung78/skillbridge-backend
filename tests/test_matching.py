@@ -44,7 +44,7 @@ def create_student(
     technical_skills: list[str] | None = None,
     portfolio_url: str | None = None,
     is_available: bool = True,
-) -> None:
+) -> str:
     user_id = create_user(client, name, "STUDENT")
     response = client.post(
         "/students",
@@ -61,6 +61,7 @@ def create_student(
         },
     )
     assert response.status_code == 201
+    return response.json()["id"]
 
 
 def create_project(
@@ -171,6 +172,29 @@ def test_technical_skills_are_used_for_project_matching(client: TestClient) -> N
     assert [candidate["name"] for candidate in candidates] == ["Figma Designer"]
     assert candidates[0]["matched_technical_skills"] == ["Figma"]
     assert candidates[0]["technical_skills"] == ["figma", "Adobe Photoshop"]
+
+
+def test_student_can_view_ranked_matching_open_projects(client: TestClient) -> None:
+    student_id = create_student(
+        client,
+        name="Figma Designer",
+        skills=["GRAPHIC_DESIGN", "CANVA"],
+        technical_skills=["Figma"],
+        availability="WEEKDAY_EVENINGS",
+        portfolio_url="https://www.behance.net/figma-designer",
+    )
+    project_id = create_project(client, required_technical_skills=["Figma"])
+
+    response = client.get(f"/students/{student_id}/matches")
+
+    assert response.status_code == 200
+    projects = response.json()["projects"]
+    assert len(projects) == 1
+    assert projects[0]["project_id"] == project_id
+    assert projects[0]["matched_skills"] == ["GRAPHIC_DESIGN", "CANVA"]
+    assert projects[0]["matched_technical_skills"] == ["Figma"]
+    assert projects[0]["score"] == 100
+    assert projects[0]["priority_rank"] == 1
 
 
 def test_match_recommendations_fall_back_to_rule_based_text_when_ai_is_unavailable(

@@ -50,6 +50,7 @@ These endpoints are ready now:
 | Create student profile | `POST /students` | Ready |
 | Read student profile | `GET /students/{student_id}` | Ready |
 | Edit student profile | `PATCH /students/{student_id}` | Ready |
+| Student matching project list | `GET /students/{student_id}/matches` | Ready |
 | Create project | `POST /projects` | Ready |
 | Read project | `GET /projects/{project_id}` | Ready |
 | Owner project list | `GET /owners/{owner_id}/projects` | Ready |
@@ -329,6 +330,18 @@ Show:
 - portfolio URL, if present
 - available status
 - demo rating and completed projects
+
+### Screen 3A: Matching projects
+
+Load projects recommended for the student with:
+
+```text
+GET /students/{studentProfileId}/matches
+```
+
+This returns only matching `OPEN` projects, ordered by score. Show the Top 3 projects first using `priority_rank`, then show the remaining matches. Each project card should show the title (or `Untitled project`), owner name, role, budget, deadline, work type, score, and explanation.
+
+This list is not an invitation inbox. Do not show an Accept button here. An owner must send an invitation first; show actual offers from `GET /students/{studentProfileId}/invitations`.
 
 ### Screen 4: Edit profile
 

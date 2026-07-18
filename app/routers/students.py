@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models.enums import UserRole
+from app.models.enums import ProjectStatus, UserRole
+from app.models.project import Project
 from app.models.student_profile import StudentProfile
 from app.models.student_transcript import StudentTranscript
 from app.models.user import User
@@ -14,6 +15,8 @@ from app.schemas.student import (
     StudentProfileRead,
     StudentProfileUpdate,
 )
+from app.schemas.match import StudentProjectMatchesRead
+from app.services.matching_service import find_ranked_project_matches
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
@@ -102,6 +105,27 @@ def get_student_profile(
     """Read one student profile."""
     student = get_student_or_404(student_id, session)
     return student_response(student, session)
+
+
+@router.get("/{student_id}/matches", response_model=StudentProjectMatchesRead)
+def get_student_project_matches(
+    student_id: UUID,
+    session: Session = Depends(get_session),
+) -> StudentProjectMatchesRead:
+    """Return OPEN projects recommended for one student; this is not an invitation inbox."""
+    student = get_student_or_404(student_id, session)
+    projects = session.exec(
+        select(Project).where(Project.status == ProjectStatus.OPEN)
+    ).all()
+    projects_with_owners = [
+        (project, owner)
+        for project in projects
+        if (owner := session.get(User, project.owner_id)) is not None
+    ]
+    return StudentProjectMatchesRead(
+        student_id=student.id,
+        projects=find_ranked_project_matches(student, projects_with_owners),
+    )
 
 
 @router.patch("/{student_id}", response_model=StudentProfileRead)
