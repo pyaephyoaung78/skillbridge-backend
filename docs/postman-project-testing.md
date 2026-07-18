@@ -19,6 +19,8 @@ Choose **Body -> raw -> JSON** and send:
 
 Copy the returned `id`. In Postman, save it as an environment variable named `owner_id`.
 
+The `role` value must be exactly `PROJECT_OWNER`; do not send `OWNER`.
+
 ## 2. Create a paid project
 
 ```text
@@ -61,6 +63,21 @@ Do not send `city`, `location`, `work_mode`, a nested `availability_time` object
 Use a deadline that is today or in the future. The backend rejects past dates.
 
 Copy the response `id` to a Postman environment variable named `project_id`.
+
+## 2A. Create a read-only project draft from owner voice
+
+```text
+POST http://127.0.0.1:8000/projects/voice-draft
+```
+
+Choose **Body -> form-data**:
+
+| Key | Type | Value |
+|---|---|---|
+| `owner_id` | Text | `{{owner_id}}` |
+| `file` | File | A short M4A, MP3, WAV, WEBM, AAC, OGG, AIFF, or FLAC recording |
+
+This returns `transcript` and `project_draft`; it does **not** create a row in `projects`. If `project_draft.missing_fields` is empty, copy its fields into the normal `POST /projects` request, add `owner_id`, then send it to save the project. If fields are missing, record again; there is no edit screen in this flow.
 
 ## 3. View one project
 

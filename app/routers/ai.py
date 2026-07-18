@@ -13,6 +13,7 @@ from app.models.user import User
 from app.schemas.ai import (
     ParseTextRequest,
     ProjectDraft,
+    ProjectVoiceDraftResponse,
     StudentProfileDraft,
     TranscriptResponse,
 )
@@ -69,6 +70,18 @@ def get_student_user_or_404(student_user_id: UUID, session: Session) -> User:
         raise HTTPException(
             status_code=422,
             detail="Transcripts can only be saved for a STUDENT user.",
+        )
+    return user
+
+
+def get_project_owner_or_404(owner_id: UUID, session: Session) -> User:
+    user = session.get(User, owner_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Project Owner user not found.")
+    if user.role != UserRole.PROJECT_OWNER:
+        raise HTTPException(
+            status_code=422,
+            detail="Voice project drafts can only be created for a PROJECT_OWNER user.",
         )
     return user
 
@@ -158,3 +171,31 @@ def parse_project(payload: ParseTextRequest) -> ProjectDraft:
         return parse_project_brief(payload.text)
     except (AIServiceNotConfiguredError, AIServiceError) as error:
         raise provider_error_to_http(error) from error
+
+
+@router.post("/projects/voice-draft", response_model=ProjectVoiceDraftResponse)
+async def create_project_voice_draft(
+    file: UploadFile = File(...),
+    owner_id: UUID = Form(...),
+    session: Session = Depends(get_session),
+) -> ProjectVoiceDraftResponse:
+    """Transcribe owner audio into a read-only project draft before confirmation."""
+    get_project_owner_or_404(owner_id, session)
+    mime_type = get_audio_mime_type(file)
+
+    audio_bytes = await file.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=422, detail="The audio file is empty.")
+    if len(audio_bytes) > get_settings().max_audio_bytes:
+        raise HTTPException(status_code=413, detail="Audio file is too large.")
+
+    try:
+        transcript = transcribe_burmese_audio(audio_bytes, mime_type)
+        project_draft = parse_project_brief(transcript)
+    except (AIServiceNotConfiguredError, AIServiceError) as error:
+        raise provider_error_to_http(error) from error
+
+    return ProjectVoiceDraftResponse(
+        transcript=transcript,
+        project_draft=project_draft,
+    )

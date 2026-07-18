@@ -51,6 +51,46 @@ def test_project_parse_returns_a_draft_without_saving(monkeypatch) -> None:
     assert response.json()["budget_mmk"] == 60_000
 
 
+def test_owner_voice_returns_a_project_draft_for_confirmation(monkeypatch) -> None:
+    def fake_transcribe(audio_bytes: bytes, mime_type: str) -> str:
+        assert audio_bytes == b"owner audio"
+        assert mime_type == "audio/mp4"
+        return "Figma နဲ့ Tech Event poster ဆွဲပေးမယ့် designer လိုတယ်"
+
+    def fake_parse(_: str) -> ProjectDraft:
+        return ProjectDraft(
+            title="Tech Event Poster Designer",
+            description="Create posters for an upcoming technology event.",
+            role="GRAPHIC_DESIGNER",
+            required_skills=["GRAPHIC_DESIGN"],
+            required_technical_skills=["Figma"],
+            required_availability="WEEKEND_MORNINGS",
+            deadline="2026-07-31",
+            work_type="REMOTE",
+            budget_mmk=60_000,
+        )
+
+    monkeypatch.setattr(ai, "transcribe_burmese_audio", fake_transcribe)
+    monkeypatch.setattr(ai, "parse_project_brief", fake_parse)
+    with TestClient(app) as client:
+        owner_response = client.post(
+            "/users",
+            json={"name": "Tech Event Club", "role": "PROJECT_OWNER"},
+        )
+        owner_id = owner_response.json()["id"]
+        response = client.post(
+            "/projects/voice-draft",
+            data={"owner_id": owner_id},
+            files={"file": ("project.m4a", b"owner audio", "audio/mp4")},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["transcript"]
+    assert body["project_draft"]["required_technical_skills"] == ["Figma"]
+    assert body["project_draft"]["missing_fields"] == []
+
+
 def test_voice_endpoint_rejects_a_non_audio_upload() -> None:
     with TestClient(app) as client:
         response = client.post(

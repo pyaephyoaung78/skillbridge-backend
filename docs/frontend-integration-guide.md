@@ -63,6 +63,7 @@ These endpoints are ready now:
 | Student transcription history | `GET /student-users/{student_user_id}/transcripts` | Ready |
 | Parse student text | `POST /profiles/parse` | Available when `GEMINI_API_KEY` is configured |
 | Parse project text | `POST /projects/parse-brief` | Available when `GEMINI_API_KEY` is configured |
+| Create read-only project draft from owner voice | `POST /projects/voice-draft` | Available when `GEMINI_API_KEY` is configured |
 
 All core text-based MVP APIs are ready. Voice transcription and AI parsing are optional enhancements that need provider credentials; every voice screen must also keep a normal text/form input.
 
@@ -365,6 +366,10 @@ Role Selection
 
 Use the same `POST /users` endpoint as the Student flow, but send the Project Owner role:
 
+```text
+POST /users
+```
+
 ```json
 {
   "name": "Tech Event Club",
@@ -372,7 +377,18 @@ Use the same `POST /users` endpoint as the Student flow, but send the Project Ow
 }
 ```
 
-Save the returned user ID as:
+Example response:
+
+```json
+{
+  "id": "owner-user-uuid",
+  "name": "Tech Event Club",
+  "role": "PROJECT_OWNER",
+  "created_at": "2026-07-19T10:00:00+00:00"
+}
+```
+
+Save the returned `id` as:
 
 ```text
 ownerUserId
@@ -467,6 +483,48 @@ status = OPEN
 ```
 
 Do not send these as editable Flutter form values.
+
+### Owner voice project flow (no edit screen)
+
+The owner can create a project by voice without editing generated fields:
+
+```text
+Record voice
+  -> POST /projects/voice-draft
+  -> display read-only project summary
+  -> owner taps Confirm
+  -> POST /projects with the returned project_draft fields
+  -> GET /projects/{projectId}/matches
+```
+
+Send `multipart/form-data` to `POST /projects/voice-draft`:
+
+| Key | Type | Value |
+|---|---|---|
+| `file` | File | Owner's audio recording |
+| `owner_id` | Text | Project Owner User ID from `POST /users` |
+
+The response is not yet saved as a project:
+
+```json
+{
+  "transcript": "...",
+  "project_draft": {
+    "title": "Tech Event Poster Designer",
+    "description": "Create posters for an upcoming technology event.",
+    "role": "GRAPHIC_DESIGNER",
+    "required_skills": ["GRAPHIC_DESIGN"],
+    "required_technical_skills": ["Figma"],
+    "required_availability": "WEEKEND_MORNINGS",
+    "deadline": "2026-07-31",
+    "work_type": "REMOTE",
+    "budget_mmk": 60000,
+    "missing_fields": []
+  }
+}
+```
+
+Show these draft values as read-only. If `missing_fields` is empty, enable **Confirm**. On confirmation, copy the returned draft values into `POST /projects` and add `owner_id`. Do not provide edit controls. If `missing_fields` contains anything, disable Confirm and ask the owner to record again.
 
 ## 8. Matching and invitation flow
 

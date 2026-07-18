@@ -49,6 +49,7 @@ class ProjectDraft(BaseModel):
     description: str | None = None
     role: str | None = None
     required_skills: list[str] = Field(default_factory=list)
+    required_technical_skills: list[str] = Field(default_factory=list)
     required_availability: str | None = None
     deadline: date | None = None
     work_type: WorkType | None = None
@@ -59,6 +60,18 @@ class ProjectDraft(BaseModel):
     @classmethod
     def required_draft_skills_must_be_allowed(cls, skills: list[str]) -> list[str]:
         return validate_draft_skills(skills)
+
+    @field_validator("required_technical_skills")
+    @classmethod
+    def technical_draft_skills_must_be_clean(cls, skills: list[str]) -> list[str]:
+        cleaned_skills = [skill.strip() for skill in skills if skill.strip()]
+        return list(dict.fromkeys(cleaned_skills))
+
+
+class ProjectVoiceDraftResponse(BaseModel):
+    transcript: str
+    language_code: str = "my-MM"
+    project_draft: ProjectDraft
 
 
 class MatchRecommendationDraft(BaseModel):

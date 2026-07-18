@@ -63,6 +63,8 @@ Rules:
 - For unknown fields, return null (or an empty required_skills list) and add the API field name to missing_fields.
 - Convert a clear relative deadline such as Friday into ISO date YYYY-MM-DD using today's date only when unambiguous.
 - Allowed required_skills only: {", ".join(sorted(ALLOWED_SKILLS))}.
+- `required_skills` contains only matching categories, such as GRAPHIC_DESIGN or PROGRAMMING.
+- `required_technical_skills` preserves exact English tools, software, languages, or frameworks, such as Figma, Canva, Python, C++, or Java. Do not translate or replace these terms.
 - work_type must be REMOTE or ON_SITE.
 - budget_mmk must be a positive integer in MMK. Do not create a budget if it was not stated.
 - This MVP always represents paid work, so do not return compensation type or project status.
