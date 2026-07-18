@@ -16,6 +16,13 @@ Flutter must show the returned transcript or draft, let the user edit it, then c
 .venv/bin/python -m pip install -r requirements.txt
 ```
 
+M4A and WebM recordings must be converted to WAV before Gemini receives them. On Ubuntu servers, install FFmpeg once:
+
+```bash
+sudo apt update
+sudo apt install -y ffmpeg
+```
+
 ## 2. Configure environment variables
 
 Copy the example file locally:
@@ -58,7 +65,9 @@ In Postman select **Body -> form-data**:
 
 | Key | Type | Value |
 |---|---|---|
-| `file` | File | choose a short `.m4a`, `.mp3`, `.wav`, or `.webm` recording |
+| `file` | File | choose a short `.m4a`, `.mp3`, `.wav`, `.webm`, `.aac`, `.ogg`, `.aiff`, or `.flac` recording |
+
+M4A and WebM are converted on the backend. Do not send the Gemini API key from Postman or Flutter.
 
 ### Parse a student profile
 

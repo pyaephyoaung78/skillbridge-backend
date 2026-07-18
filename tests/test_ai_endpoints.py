@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.routers import ai
 from app.schemas.ai import ProjectDraft, StudentProfileDraft
+from app.services import voice_service
 from main import app
 
 
@@ -75,6 +76,31 @@ def test_voice_endpoint_returns_a_burmese_transcript(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json()["transcript"] == "Graphic Design နဲ့ Canva တတ်ပါတယ်။"
+
+
+def test_m4a_audio_is_converted_to_wav_for_gemini(monkeypatch) -> None:
+    def fake_convert(audio_bytes: bytes, input_suffix: str) -> bytes:
+        assert audio_bytes == b"m4a bytes"
+        assert input_suffix == ".m4a"
+        return b"wav bytes"
+
+    monkeypatch.setattr(voice_service, "_convert_to_wav", fake_convert)
+
+    audio_bytes, mime_type = voice_service.prepare_audio_for_gemini(
+        b"m4a bytes", "audio/mp4"
+    )
+
+    assert audio_bytes == b"wav bytes"
+    assert mime_type == "audio/wav"
+
+
+def test_mp3_audio_uses_gemini_supported_mime_type() -> None:
+    audio_bytes, mime_type = voice_service.prepare_audio_for_gemini(
+        b"mp3 bytes", "audio/mpeg"
+    )
+
+    assert audio_bytes == b"mp3 bytes"
+    assert mime_type == "audio/mp3"
 
 
 def test_ai_endpoints_show_clear_setup_error_when_not_configured(monkeypatch) -> None:
