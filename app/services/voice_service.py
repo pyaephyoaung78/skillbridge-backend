@@ -116,6 +116,10 @@ def transcribe_burmese_audio(audio_bytes: bytes, mime_type: str) -> str:
                     "Transcribe only the spoken words in this audio. "
                     "The primary language is Burmese (Myanmar). "
                     "Return the transcript in Burmese script where appropriate. "
+                    "Keep technical terms, software names, skill names, job titles, "
+                    "and English words in English; do not translate or transliterate them into Burmese. "
+                    "Examples: Graphic Design, Canva, Social Media, UI/UX, Python, "
+                    "Digital Marketing, and Video Editing. "
                     "Do not translate, summarize, explain, add timestamps, or add labels."
                 ),
                 types.Part.from_bytes(data=gemini_audio_bytes, mime_type=gemini_mime_type),
