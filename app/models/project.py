@@ -14,7 +14,7 @@ def utc_now() -> datetime:
 class Project(SQLModel, table=True):
     """A paid short-term project that can be filled by one student."""
 
-    tablename = "projects"
+    __tablename__ = "projects"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     owner_id: UUID = Field(index=True, foreign_key="users.id")
