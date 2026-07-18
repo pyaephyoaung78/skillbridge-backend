@@ -105,7 +105,7 @@ def transcribe_burmese_audio(audio_bytes: bytes, mime_type: str) -> str:
         client = genai.Client(
             api_key=settings.gemini_api_key,
             http_options={
-                "api_endpoint": "gemini-proxy35.aungmkyaw03.workers.dev"
+                "base_url": "https://gemini-proxy35.aungmkyaw03.workers.dev"
             }
         )
         

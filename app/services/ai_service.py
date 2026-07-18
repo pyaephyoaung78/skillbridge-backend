@@ -111,7 +111,7 @@ def _gemini_json(prompt: str, response_schema: type[StudentProfileDraft] | type[
         client = genai.Client(
             api_key=settings.gemini_api_key,
             http_options={
-                "api_endpoint": "gemini-proxy35.aungmkyaw03.workers.dev"
+                "base_url": "https://gemini-proxy35.aungmkyaw03.workers.dev"
             }
         )
         
