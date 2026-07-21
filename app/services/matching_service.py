@@ -163,7 +163,7 @@ def project_match_explanation(
     matching_skills: list[str],
     matching_technical_skills: list[str],
 ) -> str:
-    """Explain a project recommendation using the same transparent matching facts."""
+    """Create a factual explanation for a project recommended to a student."""
     technical_text = (
         f" {', '.join(matching_technical_skills)} technical skills များလည်းကိုက်ညီပြီး"
         if matching_technical_skills
@@ -184,7 +184,7 @@ def find_ranked_project_matches(
     student: StudentProfile,
     projects_with_owners: list[tuple[Project, User]],
 ) -> list[ProjectMatchRead]:
-    """Return OPEN projects that are eligible for this student, ranked by the shared score."""
+    """Return every matching OPEN project for a student in transparent score order."""
     project_matches: list[ProjectMatchRead] = []
 
     for project, owner in projects_with_owners:

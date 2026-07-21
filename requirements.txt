@@ -5,3 +5,4 @@ pytest
 httpx
 google-genai
 python-multipart
+python-dotenv
